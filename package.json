@@ -1,35 +1,74 @@
 {
-    "name": "openscad-integration",
-    "displayName": "openscad-integration",
-    "description": "",
-    "version": "0.0.1",
-    "publisher": "hhornbacher",
-    "engines": {
-        "vscode": "^1.10.0"
-    },
-    "categories": [
-        "Other"
+  "name": "openscad-integration",
+  "displayName": "OpenSCAD Integration",
+  "description": "",
+  "version": "0.0.1",
+  "icon": "images/logo.png",
+  "publisher": "hhornbacher",
+  "engines": {
+    "vscode": "^1.10.0"
+  },
+  "categories": [
+    "Languages",
+    "Snippets",
+    "Formatters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:extension.sayHello",
+    "onLanguage:scad"
+  ],
+  "main": "./src/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "scad",
+        "aliases": [
+          "OpenSCAD",
+          "scad"
+        ],
+        "extensions": [
+          ".scad"
+        ],
+        "configuration": "./scad.configuration.json"
+      }
     ],
-    "activationEvents": [
-        "onCommand:extension.sayHello"
+    "commands": [
+      {
+        "command": "extension.sayHello",
+        "title": "Hello World"
+      }
     ],
-    "main": "./extension",
-    "contributes": {
-        "commands": [{
-            "command": "extension.sayHello",
-            "title": "Hello World"
-        }]
-    },
-    "scripts": {
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "node ./node_modules/vscode/bin/test"
-    },
-    "devDependencies": {
-        "typescript": "^2.0.3",
-        "vscode": "^1.0.0",
-        "mocha": "^2.3.3",
-        "eslint": "^3.6.0",
-        "@types/node": "^6.0.40",
-        "@types/mocha": "^2.2.32"
-    }
+    "snippets": [
+      {
+        "language": "scad",
+        "path": "./snippets/scad.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "scad",
+        "scopeName": "source.scad",
+        "path": "./syntaxes/scad.tmLanguage"
+      }
+    ]
+  },
+  "scripts": {
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "node ./node_modules/vscode/bin/test"
+  },
+  "devDependencies": {
+    "typescript": "^2.0.3",
+    "vscode": "^1.0.0",
+    "mocha": "^2.3.3",
+    "eslint": "^3.6.0",
+    "@types/node": "^6.0.40",
+    "@types/mocha": "^2.2.32"
+  },
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "lodash": "^4.17.4",
+    "pegjs": "^0.10.0",
+    "pegjs-require": "^2.0.0"
+  }
 }
