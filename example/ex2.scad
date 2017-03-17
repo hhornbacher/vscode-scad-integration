@@ -30,21 +30,13 @@ totalHeight=(holderHeight*rows)+margin;
 totalDepth=bodyDepth+holderDepth;
 
 
-// Create a shell with one open side
 
 
 module shell(dimension=[5,5,5]) {
-    width=dimension[0];
-    height=dimension[1];
-    depth=dimension[2];
-    wall=wallThickness*2;
-        translate([((width+wall)/2), ((height+wall)/2), ((depth+wallThickness)/2)])
-    difference () {
-        cube(size=[width+wall, height+wall, depth+wallThickness], center=true);
-        translate([0, 0, wallThickness]) {
-            cube(size=[width, height, depth], center=true);
-        }
-    }
+            cube(size=[
+                totalWidth-(tollerance*2), 
+                totalHeight-(tollerance*2), 
+                holderDepth]);
 }
 
 // Create the tube holding inlay
@@ -56,6 +48,7 @@ module tubeHolder() {
                 totalWidth-(tollerance*2), 
                 totalHeight-(tollerance*2), 
                 holderDepth]);
+
 
             // Cut holes for tubes
             for (row=[0:(rows-1)]) {
@@ -71,6 +64,7 @@ module tubeHolder() {
             }
         }
 
+        /*
         // Add support walls
         for (row=[0:(rows-2)]) {
             for (column=[0:(columns-2)]) {
@@ -90,39 +84,40 @@ module tubeHolder() {
                 }
             }
         }
+        */
     }
 }
 
 
 
-    union() {
-        color("lightGray") {
-            *shell([totalWidth,totalHeight,totalDepth+wallThickness]);
-            echo(str("totalWidth = ", totalWidth+(2*wallThickness)));
-            echo(str("totalHeight = ", totalHeight+(2*wallThickness)));
-            echo(str("totalDepth = ", totalDepth+wallThickness));
-        }
-        difference() {
-            
-            color("darkGreen") {
-                translate([wallThickness+tollerance,wallThickness+tollerance,wallThickness+bodyDepth])
-                tubeHolder();
-            }
-            #color("orange") {
-                if(totalWidth>totalHeight) {
-                    translate([(totalWidth/2)+wallThickness, (totalHeight/2)+wallThickness, -((totalDepth/100)+wallThickness)]) {
-                        scale([1, totalHeight/totalWidth, ((totalDepth+wallThickness)*2)/totalWidth]) {
-                            sphere(d=totalWidth-wallThickness);
-                        }
-                    }
-                }
-                else {
-                    translate([(totalWidth/2)+wallThickness, (totalHeight/2)+wallThickness, -((totalDepth/100)+wallThickness)]) {
-                        scale([totalWidth/totalHeight, 1, ((totalDepth+wallThickness)*2)/totalHeight]) {
-                            sphere(d=totalHeight-wallThickness);
-                        }
-                    }
-                }
-            }
-        }
+union() {
+/*    color("lightGray") {
+        *shell([totalWidth,totalHeight,totalDepth+wallThickness]);
+        echo(str("totalWidth = ", totalWidth+(2*wallThickness)));
+        echo(str("totalHeight = ", totalHeight+(2*wallThickness)));
+        echo(str("totalDepth = ", totalDepth+wallThickness));
     }
+    difference() {
+        
+        color("darkGreen") {
+            translate([wallThickness+tollerance,wallThickness+tollerance,wallThickness+bodyDepth])
+            tubeHolder();
+        }
+        #color("orange") {
+            if(totalWidth>totalHeight) {
+                translate([(totalWidth/2)+wallThickness, (totalHeight/2)+wallThickness, -((totalDepth/100)+wallThickness)]) {
+                    scale([1, totalHeight/totalWidth, ((totalDepth+wallThickness)*2)/totalWidth]) {
+                        sphere(d=totalWidth-wallThickness);
+                    }
+                }
+            }
+            else {
+                translate([(totalWidth/2)+wallThickness, (totalHeight/2)+wallThickness, -((totalDepth/100)+wallThickness)]) {
+                    scale([totalWidth/totalHeight, 1, ((totalDepth+wallThickness)*2)/totalHeight]) {
+                        sphere(d=totalHeight-wallThickness);
+                    }
+                }
+            }
+        }
+    }*/
+}

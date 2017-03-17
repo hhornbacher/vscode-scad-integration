@@ -24,7 +24,7 @@ const injectInitializer = (grammar, code) => {
 
 const pegPlugin = {
     transform: (grammar) => {
-        const injectCode = 'const _ = require(\'lodash\'),\n        {Node, Value, VariableNode, ExpressionNode, ParameterList, ParameterDefinitionList} = require(\'./ast\')(location);';
+        const injectCode = 'const _ = require(\'lodash\'),\n        {Node, Value, ReferenceValue, NumberValue, BooleanValue, StringValue, VectorValue, RangeValue, ParameterList, ParameterDefinitionList, VariableNode, ExpressionNode, ModuleNode} = require(\'./ast\')(location);';
         return injectInitializer(grammar, injectCode);
     },
     use: (config) => {

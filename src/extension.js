@@ -12,6 +12,8 @@ function activate(context) {
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "openscad-integration" is now active!');
 
+    console.log(context)
+
     let featureDisposables = [];
 
     featureDisposables += commands.registerCommand('extension.sayHello', function () {

@@ -1,3 +1,16 @@
 // Place your settings in this file to overwrite default and user settings.
 {
+    "git.confirmSync": false,
+    "java.errors.incompleteClasspath.severity": "ignore",
+    "window.zoomLevel": 0,
+    "workbench.colorTheme": "Default Light+",
+    "emeraldwalk.runonsave": {
+        "autoClearConsole": true,
+        "commands": [
+            {
+                "match": "\\.pegjs$",
+                "cmd": "${workspaceRoot}/node_modules/pegjs/bin/pegjs --plugin ${fileDirname}/peg-plugin.js ${file}"
+            }
+        ]
+    }
 }

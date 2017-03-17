@@ -16,7 +16,7 @@ module.exports = (location) => {
     }
 
     class Node extends Entity {
-        constructor(type, data, children = null) {
+        constructor(type, data = {}, children = null) {
             super(type);
             if (data)
                 this.data = data;
@@ -55,53 +55,86 @@ module.exports = (location) => {
     }
 
     class VariableNode extends Node {
-        constructor({ name, expression }, children = null) {
-            super('Variable', null, children);
-            if (name)
-                this.name = name;
+        constructor(name, expression) {
+            super('Variable');
 
-            if (expression){
-                expression.parent = this;
-                this.data = expression;
-            }
+            this.name = name;
+
+            expression.parent = this;
+            this.data = expression;
 
             this.parent = null;
         }
     }
 
     class ExpressionNode extends Node {
-        constructor(expression, children = null) {
-            super('Expression', null, children);
-            
-            if (expression){
-                expression.parent = this;
-                this.data = expression;
-            }
+        constructor(expression) {
+            super('Expression');
+
+            expression.parent = this;
+            this.data = expression;
 
             this.parent = null;
         }
     }
 
+    class ModuleNode extends Node {
+        constructor(name, params, children = null) {
+            super('Module', params, children);
+            this.name = name;
+            this.parent = null;
+        }
+    }
+
     class Value extends Entity {
-        constructor(value, negative = false, ref = false) {
-            if (ref)
-                super('Reference');
-            else if (_.isNumber(value))
-                super('Number');
-            else if (_.isString(value))
-                super('String');
-            else if (_.isArray(value))
-                super('Vector');
-            else
-                super('Value');
+        constructor(type='Value', value=null, negative = false) {
+            super(type);
 
             if (negative)
                 this.negative = true;
             else
                 this.negative = false;
 
-            this.value = value;
+            if (value)
+                this.value = value;
+
             this.parent = null;
+        }
+    }
+
+    class NumberValue extends Value {
+        constructor(value, negative = false) {
+            super('Number', value, negative);
+        }
+    }
+
+    class BooleanValue extends Value {
+        constructor(value) {
+            super('Boolean', value);
+        }
+    }
+
+    class StringValue extends Value {
+        constructor(value) {
+            super('String', value);
+        }
+    }
+
+    class VectorValue extends Value {
+        constructor(value, negative = false) {
+            super('Vector', value, negative);
+        }
+    }
+
+    class RangeValue extends Value {
+        constructor(start, end, increment=1) {
+            super('Range', {start, end, increment});
+        }
+    }
+
+    class ReferenceValue extends Value {
+        constructor(name, negative = false) {
+            super('Reference',name,negative);
         }
     }
 
@@ -121,6 +154,6 @@ module.exports = (location) => {
     }
 
     return {
-        Node, Value, ParameterList, ParameterDefinitionList, VariableNode, ExpressionNode
+        Node, Value, ReferenceValue, NumberValue, BooleanValue, StringValue, VectorValue, RangeValue, ParameterList, ParameterDefinitionList, VariableNode, ExpressionNode, ModuleNode
     };
 };
