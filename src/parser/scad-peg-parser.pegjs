@@ -3,7 +3,7 @@
 }
 
 start = ws? statements:statement* ws?  { 
-    return new Node('Root',null, statements);
+    return new RootEntity(statements);
      }
 
 // --------------------------------------------------------------------------------------------------
@@ -20,17 +20,17 @@ statement "Statement"
 // Comments
 comment "Comment"
     = '/*' head:[^*]* '*'+ tail:([^/*] [^*]* '*'+)* '/' { 
-        return new Node('BlockComment', head.join('') + _.map(tail, (element) => {
+        return new Entity('BlockComment', head.join('') + _.map(tail, (element) => {
                 return element[0] + element[1].join('');
             }));
          }
-    / '//' text:[^\n]* '\n' { return new Node('LineComment', text.join('').trim()); }
+    / '//' text:[^\n]* '\n' { return new Entity('LineComment', text.join('').trim()); }
 
 // --------------------------------------------------------------------------------------------------
 // Includes
 include "Include"
-    = 'include' ws? includeOpen path:includeFile includeClose eos { return new Node('Include', path); }
-    / 'use' ws? includeOpen path:includeFile includeClose eos { return new Node('Use', path); }
+    = 'include' ws? includeOpen path:includeFile includeClose eos { return new Entity('Include', path); }
+    / 'use' ws? includeOpen path:includeFile includeClose eos { return new Entity('Use', path); }
 
 includeOpen = ws? '<' ws?
 includeClose = ws? '>' ws?
@@ -41,21 +41,21 @@ includeFile = ws? path:[\.A-Za-z0-9\-_/]+ ws? { return path.join(''); }
 // --------------------------------------------------------------------------------------------------
 // Modules
 module
-    = 'module' ws? name:name params:parameterDefinitionList block:block { return new Node('Module', {name, params}, block); }
+    = 'module' ws? name:name params:parameterDefinitionList block:block { return new Entity('Module', {name, params}, block); }
 
 // --------------------------------------------------------------------------------------------------
 // Functions
 function 
-    = 'function' ws? name:name params:parameterDefinitionList assign expression:expression eos { return new Node('Function', {name, params, expression}); }
+    = 'function' ws? name:name params:parameterDefinitionList assign expression:expression eos { return new Entity('Function', {name, params, expression}); }
 
 // --------------------------------------------------------------------------------------------------
 // Actions
 action
     = modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* eos { 
-        return new Node('Action', {name, params, modifier}, operators);
+        return new Entity('Action', {name, params, modifier}, operators);
     }
     / modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* block:block { 
-        return new Node('OperatorAction', {name, params, operators, modifier}, block);
+        return new Entity('OperatorAction', {name, params, operators, modifier}, block);
     }
 
 actionOperators
@@ -66,28 +66,28 @@ actionOperators
             };
             if(modifier)
                 data.modifier = modifier.modifier;
-            return new Node('ActionOperator', data);
+            return new Entity('ActionOperator', data);
         }
 
 actionModifiers "Modifiers"
     = ws? '#' ws? { 
-            return new Node('ActionModifier', 'highlight');
+            return new Entity('ActionModifier', 'highlight');
          }
     / ws? '%' ws? { 
-            return new Node('ActionModifier', 'transparent');
+            return new Entity('ActionModifier', 'transparent');
         }
     / ws? '!' ws? {
-            return new Node('ActionModifier', 'showOnly');
+            return new Entity('ActionModifier', 'showOnly');
           }
     / ws? '*' ws? { 
-            return new Node('ActionModifier', 'disable');
+            return new Entity('ActionModifier', 'disable');
         }
 
 // --------------------------------------------------------------------------------------------------
 // Variables
 variable "Variable definition"
     = name:name assign expression:expression  eos { 
-            return new VariableNode({name, expression});
+            return new VariableEntity({name, expression});
              }
 
 
@@ -139,17 +139,17 @@ name "Name"
 expression "Expression"
     = head:term tail:(termOperator term)* { 
         if(tail.length > 0)
-            return new ExpressionNode( _.concat([], head, tail));
+            return new ExpressionEntity( _.concat([], head, tail));
         else
-            return new ExpressionNode([head]);
+            return new ExpressionEntity([head]);
          }
 
 term "Term"
     = head:factor tail:(termOperator factor )* {
         if(tail.length > 0)
-            return new Node('Term',null, _.concat([], head, tail));
+            return new Entity('Term',null, _.concat([], head, tail));
         else
-            return new Node('Term',null, [head]);
+            return new Entity('Term',null, [head]);
           }
 
 // termOperator = ws? operator:[-+*/] ws?

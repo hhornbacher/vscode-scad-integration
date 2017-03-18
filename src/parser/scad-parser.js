@@ -4,19 +4,23 @@ const _ = require('lodash'),
  
 const SCADParser = module.exports = {
   cache: [],
-  getAST: (file, code = null) => {
+  getAST: (file = 'virtual', code = null) => {
     if (SCADParser.cache[file])
       return SCADParser.cache[file];
 
     if (code) {
       try {
-        SCADParser.cache[file] = pegParser.parse(code);
+        SCADParser.cache[file] = pegParser.parse(code, {
+          file: file
+        });
       } catch (error) {
         console.log(error, '\n', error.location);
       }
     }
     else {
-      SCADParser.cache[file] = pegParser.parse(fs.readFileSync(file, 'utf8'));
+      SCADParser.cache[file] = pegParser.parse(fs.readFileSync(file, 'utf8'), {
+          file: file
+        });
     }
 
     return SCADParser.cache[file];

@@ -1,6 +1,8 @@
 const _ = require('lodash');
 
-module.exports = (location) => {
+module.exports = (location, file) => {
+
+    console.log(file, location);
 
     class Location {
         constructor() {
@@ -9,17 +11,8 @@ module.exports = (location) => {
     }
 
     class Entity {
-        constructor(type) {
-            this.type = type;
+        constructor(children = null) {
             this.location = new Location();
-        }
-    }
-
-    class Node extends Entity {
-        constructor(type, data = {}, children = null) {
-            super(type);
-            if (data)
-                this.data = data;
             if (children) {
                 this.children = _.map(children, (child) => {
                     child.parent = this;
@@ -29,7 +22,24 @@ module.exports = (location) => {
             this.parent = null;
         }
 
-        findNodeByType(type) {
+        addChild(child) {
+            if (child instanceof StatementEntity) {
+                child.parent = this;
+                this.children.push(child);
+            }
+
+            else
+                throw new SyntaxError(`Wrong argument 'child' type: ${typeof children}, expected: StatementEntity`);
+        }
+
+        addChildren(children) {
+            if (_.isArray(children))
+                _.each(children, child => this.addChild(child));
+            else
+                throw new SyntaxError(`Wrong argument 'children' type: ${typeof children}, expected: array`);
+        }
+
+        findEntityByType(type) {
             let results = [];
 
             if (this.type === type)
@@ -54,7 +64,26 @@ module.exports = (location) => {
         }
     }
 
-    class VariableNode extends Node {
+    class RootEntity extends Entity {
+        constructor(RootEntity = []) {
+            super('Root', children);
+        }
+    }
+
+            console.log(RootEntity.name);
+
+    class CommentEntity extends Entity {
+        constructor(text, multiline = false) {
+            super('CommentEntity');
+
+            this.text = text;
+            this.multiline = multiline;
+
+            this.parent = null;
+        }
+    }
+
+    class StatementEntity extends Entity {
         constructor(name, expression) {
             super('Variable');
 
@@ -67,7 +96,20 @@ module.exports = (location) => {
         }
     }
 
-    class ExpressionNode extends Node {
+    class VariableEntity extends Entity {
+        constructor(name, expression) {
+            super('Variable');
+
+            this.name = name;
+
+            expression.parent = this;
+            this.data = expression;
+
+            this.parent = null;
+        }
+    }
+
+    class ExpressionEntity extends Entity {
         constructor(expression) {
             super('Expression');
 
@@ -78,7 +120,7 @@ module.exports = (location) => {
         }
     }
 
-    class ModuleNode extends Node {
+    class ModuleEntity extends Entity {
         constructor(name, params, children = null) {
             super('Module', params, children);
             this.name = name;
@@ -86,10 +128,10 @@ module.exports = (location) => {
         }
     }
 
-    class Value extends Entity {
-        constructor(type='Value', value=null, negative = false) {
-            super(type);
-
+    class ValueEntity extends Entity {
+        constructor(value = null, negative = false) {
+            super();
+            
             if (negative)
                 this.negative = true;
             else
@@ -102,58 +144,60 @@ module.exports = (location) => {
         }
     }
 
-    class NumberValue extends Value {
+    class NumberValue extends ValueEntity {
         constructor(value, negative = false) {
-            super('Number', value, negative);
+            super(value, negative);
         }
     }
 
-    class BooleanValue extends Value {
+    class BooleanValue extends ValueEntity {
         constructor(value) {
-            super('Boolean', value);
+            super(value);
         }
     }
 
-    class StringValue extends Value {
+    class StringValue extends ValueEntity {
         constructor(value) {
-            super('String', value);
+            super(value);
         }
     }
 
-    class VectorValue extends Value {
+    class VectorValue extends ValueEntity {
         constructor(value, negative = false) {
-            super('Vector', value, negative);
+            super(value, negative);
         }
     }
 
-    class RangeValue extends Value {
-        constructor(start, end, increment=1) {
-            super('Range', {start, end, increment});
+    class RangeValue extends VectorValue {
+        constructor(start, end, increment = 1) {
+            super({ start, end, increment });
         }
     }
 
-    class ReferenceValue extends Value {
+    class ReferenceValue extends ValueEntity {
         constructor(name, negative = false) {
-            super('Reference',name,negative);
+            super(name, negative);
         }
     }
 
-    class ParameterList extends Entity {
+    class ParameterListEntityEntity extends Entity {
         constructor(parameters) {
-            super('ParameterList');
+            super();
             this.parameters = parameters;
             this.parent = null;
         }
     }
 
-    class ParameterDefinitionList extends ParameterList {
+    class ParameterDefinitionList extends ParameterListEntity {
         constructor(parameters) {
             super(parameters);
             this.type = 'ParameterDefinitionList';
         }
     }
 
+    console.log(this);
+
     return {
-        Node, Value, ReferenceValue, NumberValue, BooleanValue, StringValue, VectorValue, RangeValue, ParameterList, ParameterDefinitionList, VariableNode, ExpressionNode, ModuleNode
+        Entity, RootEntity, StatementEntity, Value, ReferenceValue, NumberValue, BooleanValue, StringValue, VectorValue, RangeValue, ParameterListEntity, ParameterDefinitionList, VariableEntity, ExpressionEntity, ModuleEntity
     };
 };
