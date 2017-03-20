@@ -2,7 +2,25 @@ const _ = require('lodash');
 
 module.exports = (location, file) => {
 
-    console.log(file, location);
+    class AST {
+        constructor() {
+            this._entities = [];
+            this._tree = new RootEntity(this);
+            this._file = file;
+        }
+
+        get root() {
+            return this._tree;
+        }
+
+        set tree(x) {
+            return this._tree;
+        }
+
+        set entities(x) {
+            return this._entities;
+        }
+    }
 
     class Location {
         constructor() {
@@ -12,20 +30,23 @@ module.exports = (location, file) => {
 
     class Entity {
         constructor(children = null) {
-            this.location = new Location();
+            this._location = new Location();
+            this._parent = null;
+            this._type = this.name.replace('Entity','');
+
+
             if (children) {
-                this.children = _.map(children, (child) => {
+                this._children = _.map(children, (child) => {
                     child.parent = this;
                     return child;
                 });
             }
-            this.parent = null;
         }
 
         addChild(child) {
             if (child instanceof StatementEntity) {
                 child.parent = this;
-                this.children.push(child);
+                this._children.push(child);
             }
 
             else
@@ -39,13 +60,28 @@ module.exports = (location, file) => {
                 throw new SyntaxError(`Wrong argument 'children' type: ${typeof children}, expected: array`);
         }
 
+        getParentNode() {
+            return this._parent;
+        }
+
+        getType() {
+            return this._type;
+        }
+
+        getChildNode(index = null) {
+            if (_.isNumber(index) && index >= 0)
+                return this._children[index];
+            else
+                return this._children;
+        }
+
         findEntityByType(type) {
             let results = [];
 
-            if (this.type === type)
+            if (this.name === type)
                 results.push(this);
 
-            if (this.children) {
+            if (this._children) {
                 const recurse = (children, depth = 0, limit = 10) => {
                     _.each(children, child => {
                         if (child.type === type)
@@ -57,7 +93,7 @@ module.exports = (location, file) => {
                         }
                     });
                 };
-                recurse(this.children);
+                recurse(this._children);
             }
 
             return results;
@@ -65,21 +101,22 @@ module.exports = (location, file) => {
     }
 
     class RootEntity extends Entity {
-        constructor(RootEntity = []) {
+        constructor(children = [], ast) {
             super('Root', children);
+            this.ast = ast;
         }
     }
 
-            console.log(RootEntity.name);
+    console.log(RootEntity.name);
 
     class CommentEntity extends Entity {
         constructor(text, multiline = false) {
-            super('CommentEntity');
+            super();
 
-            this.text = text;
-            this.multiline = multiline;
+            this._text = text;
+            this._multiline = multiline;
 
-            this.parent = null;
+            this._parent = null;
         }
     }
 
@@ -90,9 +127,9 @@ module.exports = (location, file) => {
             this.name = name;
 
             expression.parent = this;
-            this.data = expression;
+            this._data = expression;
 
-            this.parent = null;
+            this._parent = null;
         }
     }
 
@@ -103,9 +140,9 @@ module.exports = (location, file) => {
             this.name = name;
 
             expression.parent = this;
-            this.data = expression;
+            this._data = expression;
 
-            this.parent = null;
+            this._parent = null;
         }
     }
 
@@ -114,9 +151,9 @@ module.exports = (location, file) => {
             super('Expression');
 
             expression.parent = this;
-            this.data = expression;
+            this._data = expression;
 
-            this.parent = null;
+            this._parent = null;
         }
     }
 
@@ -124,23 +161,23 @@ module.exports = (location, file) => {
         constructor(name, params, children = null) {
             super('Module', params, children);
             this.name = name;
-            this.parent = null;
+            this._parent = null;
         }
     }
 
     class ValueEntity extends Entity {
         constructor(value = null, negative = false) {
             super();
-            
+
             if (negative)
                 this.negative = true;
             else
                 this.negative = false;
 
             if (value)
-                this.value = value;
+                this._value = value;
 
-            this.parent = null;
+            this._parent = null;
         }
     }
 
@@ -180,24 +217,25 @@ module.exports = (location, file) => {
         }
     }
 
-    class ParameterListEntityEntity extends Entity {
-        constructor(parameters) {
+    class ParameterListEntity extends Entity {
+        constructor(parameters, standardValuesAllowed = false) {
             super();
-            this.parameters = parameters;
-            this.parent = null;
+            this._parameters = parameters;
+            this._parent = null;
         }
     }
 
-    class ParameterDefinitionList extends ParameterListEntity {
-        constructor(parameters) {
-            super(parameters);
-            this.type = 'ParameterDefinitionList';
+    class ParameterEntity extends ExpressionEntity {
+        constructor(name, value = null) {
+            super();
+            if (name)
+                this._name = name;
         }
     }
 
     console.log(this);
 
     return {
-        Entity, RootEntity, StatementEntity, Value, ReferenceValue, NumberValue, BooleanValue, StringValue, VectorValue, RangeValue, ParameterListEntity, ParameterDefinitionList, VariableEntity, ExpressionEntity, ModuleEntity
+        Entity, RootEntity, StatementEntity, ValueEntity, ReferenceValue, NumberValue, BooleanValue, StringValue, VectorValue, RangeValue, ParameterListEntity, ParameterDefinitionList, VariableEntity, ExpressionEntity, ModuleEntity
     };
 };
