@@ -96,11 +96,11 @@ variable "Variable definition"
 
 // Float
 float  "Float"
-    =  ws? neg:'-'? ws? value:[0-9\.]+ { return new Value(parseFloat(value.join(''),10), neg); }
+    =  ws? neg:'-'? ws? value:[0-9\.]+ { return new Entity(parseFloat(value.join(''),10), neg); }
 
 // String
 string "String"
-    =  quotationMark value:chars* quotationMark { return new Value(value.join('')); }
+    =  quotationMark value:chars* quotationMark { return new Entity(value.join('')); }
 chars
   = [^\0-\x1F\x22\x5C]
 quotationMark "Quotation mark"
@@ -108,7 +108,7 @@ quotationMark "Quotation mark"
 
 // Vector
 vector "Vector"
-    =  ws? neg:'-'? ws? vectorBracketOpen values:vectorList vectorBracketClose {  return new Value(values, neg); }
+    =  ws? neg:'-'? ws? vectorBracketOpen values:vectorList vectorBracketClose {  return new Entity(values, neg); }
 vectorBracketOpen "Vector open bracket"
     = ws? '[' ws?
 vectorBracketClose "Vector close bracket"
@@ -118,7 +118,7 @@ vectorListTail = comma comment? value:expression {return value;}
 
 // Reference
 reference "Reference"
-    = ws? neg:'-'? ws? ref:name {  return new Value(ref, neg, true); }
+    = ws? neg:'-'? ws? ref:name {  return new Entity(ref, neg, true); }
 
 // --------------------------------------------------------------------------------------------------
 // Values
@@ -165,7 +165,7 @@ termOperator "Mathematical operator"
 termGroupOpen = ws? '(' ws?
 termGroupClose = ws? ')' ws?
 factor 
-    = neg:'-'? termGroupOpen value:expression termGroupClose  { return new Value(value, neg?true:false); }
+    = neg:'-'? termGroupOpen value:expression termGroupClose  { return new Entity(value, neg?true:false); }
     / value
     / name
 
