@@ -1,9 +1,35 @@
 {
+    /*const astModule = */require('./ast')(location, options.file);
+    // const {
+    //     AST, 
+    //     CodeFile,
+    //     Entity,
+    //     RootEntity,
+    //     IncludeEntity,
+    //     UseEntity, 
+    //     ParameterEntity,
+    //     StatementEntity, 
+    //     ValueEntity,
+    //     ReferenceValue,
+    //     NumberValue, 
+    //     BooleanValue,
+    //     StringValue,
+    //     VectorValue,
+    //     RangeValue,
+    //     ParameterListEntity,
+    //     VariableEntity,
+    //     ExpressionEntity,
+    //     ModuleEntity
+    // } = astModule;
+
+    const ast = new AST();
+
+
     console.log('Parsing...');
 }
 
 start = ws? statements:statement* ws?  { 
-    return new RootEntity(statements);
+    return ast.addEntites(statements); 
      }
 
 // --------------------------------------------------------------------------------------------------
@@ -20,17 +46,17 @@ statement "Statement"
 // Comments
 comment "Comment"
     = '/*' head:[^*]* '*'+ tail:([^/*] [^*]* '*'+)* '/' { 
-        return new Entity('BlockComment', head.join('') + _.map(tail, (element) => {
-                return element[0] + element[1].join('');
-            }));
-         }
-    / '//' text:[^\n]* '\n' { return new Entity('LineComment', text.join('').trim()); }
+        return new CommentEntity(head.join('') + _.map(tail, (element) => {
+            return element[0] + element[1].join('');
+        }), true);
+    }
+    / '//' text:[^\n]* '\n' { return new CommentEntity(text.join('')); }
 
 // --------------------------------------------------------------------------------------------------
 // Includes
 include "Include"
-    = 'include' ws? includeOpen path:includeFile includeClose eos { return new Entity('Include', path); }
-    / 'use' ws? includeOpen path:includeFile includeClose eos { return new Entity('Use', path); }
+    = 'include' ws? includeOpen path:includeFile includeClose eos { return new IncludeEntity(null,path); }
+    / 'use' ws? includeOpen path:includeFile includeClose eos { return new UseEntity(null,path); }
 
 includeOpen = ws? '<' ws?
 includeClose = ws? '>' ws?
@@ -41,21 +67,21 @@ includeFile = ws? path:[\.A-Za-z0-9\-_/]+ ws? { return path.join(''); }
 // --------------------------------------------------------------------------------------------------
 // Modules
 module
-    = 'module' ws? name:name params:parameterDefinitionList block:block { return new Entity('Module', {name, params}, block); }
+    = 'module' ws? name:name params:parameterDefinitionList block:block { return new ModuleEntity(name, params, block); }
 
 // --------------------------------------------------------------------------------------------------
 // Functions
 function 
-    = 'function' ws? name:name params:parameterDefinitionList assign expression:expression eos { return new Entity('Function', {name, params, expression}); }
+    = 'function' ws? name:name params:parameterDefinitionList assign expression:expression eos { return null/*new FunctionEntity('Function', {name, params, expression})*/; }
 
 // --------------------------------------------------------------------------------------------------
 // Actions
 action
     = modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* eos { 
-        return new Entity('Action', {name, params, modifier}, operators);
+        return null/*new Entity('Action', {name, params, modifier}, operators)*/;
     }
     / modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* block:block { 
-        return new Entity('OperatorAction', {name, params, operators, modifier}, block);
+        return null/*new Entity('OperatorAction', {name, params, operators, modifier}, block)*/;
     }
 
 actionOperators
@@ -66,28 +92,28 @@ actionOperators
             };
             if(modifier)
                 data.modifier = modifier.modifier;
-            return new Entity('ActionOperator', data);
+            return null/*new Entity('ActionOperator', data)*/;
         }
 
 actionModifiers "Modifiers"
     = ws? '#' ws? { 
-            return new Entity('ActionModifier', 'highlight');
+            return null/*new Entity('ActionModifier', 'highlight')*/;
          }
     / ws? '%' ws? { 
-            return new Entity('ActionModifier', 'transparent');
+            return null/*new Entity('ActionModifier', 'transparent')*/;
         }
     / ws? '!' ws? {
-            return new Entity('ActionModifier', 'showOnly');
+            return null/*new Entity('ActionModifier', 'showOnly')*/;
           }
     / ws? '*' ws? { 
-            return new Entity('ActionModifier', 'disable');
+            return null/*new Entity('ActionModifier', 'disable')*/;
         }
 
 // --------------------------------------------------------------------------------------------------
 // Variables
 variable "Variable definition"
     = name:name assign expression:expression  eos { 
-            return new VariableEntity({name, expression});
+            return new VariableEntity(name, expression);
              }
 
 
@@ -96,11 +122,11 @@ variable "Variable definition"
 
 // Float
 float  "Float"
-    =  ws? neg:'-'? ws? value:[0-9\.]+ { return new Entity(parseFloat(value.join(''),10), neg); }
+    =  ws? neg:'-'? ws? value:[0-9\.]+ { return new NumberValue(parseFloat(value.join(''),10), neg); }
 
 // String
 string "String"
-    =  quotationMark value:chars* quotationMark { return new Entity(value.join('')); }
+    =  quotationMark value:chars* quotationMark { return new StringValue(value.join('')); }
 chars
   = [^\0-\x1F\x22\x5C]
 quotationMark "Quotation mark"
@@ -108,7 +134,7 @@ quotationMark "Quotation mark"
 
 // Vector
 vector "Vector"
-    =  ws? neg:'-'? ws? vectorBracketOpen values:vectorList vectorBracketClose {  return new Entity(values, neg); }
+    =  ws? neg:'-'? ws? vectorBracketOpen values:vectorList vectorBracketClose {  return new VectorValue(values, neg); }
 vectorBracketOpen "Vector open bracket"
     = ws? '[' ws?
 vectorBracketClose "Vector close bracket"
@@ -118,7 +144,7 @@ vectorListTail = comma comment? value:expression {return value;}
 
 // Reference
 reference "Reference"
-    = ws? neg:'-'? ws? ref:name {  return new Entity(ref, neg, true); }
+    = ws? neg:'-'? ws? ref:name {  return new ReferenceValue(ref, neg, true); }
 
 // --------------------------------------------------------------------------------------------------
 // Values
@@ -147,9 +173,9 @@ expression "Expression"
 term "Term"
     = head:factor tail:(termOperator factor )* {
         if(tail.length > 0)
-            return new Entity('Term',null, _.concat([], head, tail));
+            return new TermEntity(_.concat([], head, tail));
         else
-            return new Entity('Term',null, [head]);
+            return new TermEntity([head]);
           }
 
 // termOperator = ws? operator:[-+*/] ws?
@@ -165,7 +191,7 @@ termOperator "Mathematical operator"
 termGroupOpen = ws? '(' ws?
 termGroupClose = ws? ')' ws?
 factor 
-    = neg:'-'? termGroupOpen value:expression termGroupClose  { return new Entity(value, neg?true:false); }
+    = neg:'-'? termGroupOpen value:expression termGroupClose  { return new FactorEntity(value, neg?true:false); }
     / value
     / name
 

@@ -1,35 +1,109 @@
 //const _ = require('lodash');
 
 const injectInitializer = (grammar, code) => {
-    if (!grammar.initializer) {
-        grammar.initializer = {
-            type: 'initializer',
-            code: '',
-            location: {
-                start: {
-                    offset: 0, line: 1, column: 1
-                },
-                end: {
-                    offset: 0, line: 1, column: 1
-                }
-            }
-        };
-    }
-    grammar.initializer.code = code + grammar.initializer.code || '';
-    grammar.initializer.location.end.line += code.match(/\n/).length;
-    grammar.initializer.location.end.offset += code.length;
+  if (!grammar.initializer) {
+    grammar.initializer = {
+      type: 'initializer',
+      code: '',
+      location: {
+        start: {
+          offset: 0, line: 1, column: 1
+        },
+        end: {
+          offset: 0, line: 1, column: 1
+        }
+      }
+    };
+  }
+  grammar.initializer.code = code + grammar.initializer.code || '';
+  grammar.initializer.location.end.line += code.match(/\n/).length;
+  grammar.initializer.location.end.offset += code.length;
 
-    return grammar;
+  return grammar;
+}
+
+
+var visitor = {
+
+  build(functions) {
+    function visit(node) {
+      return functions[node.type].apply(null, arguments);
+    }
+
+    function visitNop() {
+      // Do nothing.
+    }
+
+    function visitExpression(node) {
+      let extraArgs = Array.prototype.slice.call(arguments, 1);
+
+      visit.apply(null, [node.expression].concat(extraArgs));
+    }
+
+    function visitChildren(property) {
+      return function (node) {
+        let extraArgs = Array.prototype.slice.call(arguments, 1);
+
+        node[property].forEach(child => {
+          visit.apply(null, [child].concat(extraArgs));
+        });
+      };
+    }
+
+    const DEFAULT_FUNCTIONS = {
+      grammar(node) {
+        let extraArgs = Array.prototype.slice.call(arguments, 1);
+
+        if (node.initializer) {
+          visit.apply(null, [node.initializer].concat(extraArgs));
+        }
+
+        node.rules.forEach(rule => {
+          visit.apply(null, [rule].concat(extraArgs));
+        });
+      },
+
+      initializer: visitNop,
+      rule: visitExpression,
+      named: visitExpression,
+      choice: visitChildren("alternatives"),
+      action: visitExpression,
+      sequence: visitChildren("elements"),
+      labeled: visitExpression,
+      text: visitExpression,
+      simple_and: visitExpression,
+      simple_not: visitExpression,
+      optional: visitExpression,
+      zero_or_more: visitExpression,
+      one_or_more: visitExpression,
+      group: visitExpression,
+      semantic_and: visitNop,
+      semantic_not: visitNop,
+      rule_ref: visitNop,
+      literal: visitNop,
+      class: visitNop,
+      any: visitNop
+    };
+
+    Object.keys(DEFAULT_FUNCTIONS).forEach(type => {
+      if (!Object.prototype.hasOwnProperty.call(functions, type)) {
+        functions[type] = DEFAULT_FUNCTIONS[type];
+      }
+    });
+
+    return visit;
+  }
 }
 
 const pegPlugin = {
-    transform: (grammar) => {
-        const injectCode = 'const _ = require(\'lodash\'),\n        {Entity, Value, ReferenceValue, NumberValue, BooleanValue, StringValue, VectorValue, RangeValue, ParameterList, ParameterDefinitionList, VariableEntity, ExpressionEntity, ModuleEntity} = require(\'./ast\')(location, options.file);';
-        return injectInitializer(grammar, injectCode);
-    },
-    use: (config) => {
-        config.passes.transform.push(pegPlugin.transform);
-    }
+  transform: (grammar) => {
+    const injectCode = 'const _ = require(\'lodash\');\n';
+    return injectInitializer(grammar, injectCode);
+  },
+  use: (config) => {
+    config.compiler = {visitor};
+    config.passes.transform.push(pegPlugin.transform);
+  }
 };
 
 module.exports = pegPlugin;

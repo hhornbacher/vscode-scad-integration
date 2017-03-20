@@ -1,7 +1,8 @@
 const _ = require('lodash'),
   fs = require('fs'),
   pegParser = require('./scad-peg-parser');
- 
+
+
 const SCADParser = module.exports = {
   cache: [],
   getAST: (file = 'virtual', code = null) => {
@@ -19,8 +20,8 @@ const SCADParser = module.exports = {
     }
     else {
       SCADParser.cache[file] = pegParser.parse(fs.readFileSync(file, 'utf8'), {
-          file: file
-        });
+        file: file
+      });
     }
 
     return SCADParser.cache[file];
@@ -28,10 +29,12 @@ const SCADParser = module.exports = {
 };
 
 
-  try {
-    const ast = SCADParser.getAST('../../example/ex2.scad');
-    console.log(_.find(ast.findNodeByType('Variable'), {name:'row'}).data.data[0].children);
+try {
+  const ast = SCADParser.getAST('../../example/ex2.scad');
+  console.log(_.find(ast.findNodeByType('Variable'), { name: 'row' }).data.data[0].children);
 
-  } catch (error) {
-    console.log(error);
-  }
+} catch (error) {
+  console.log(error);
+  if (error.entity)
+    console.log(error.entity);
+}

@@ -1,56 +1,115 @@
-const _ = require('lodash');
+const _ = require('lodash'),
+    fs = require('fs');
 
 module.exports = (location, file) => {
+
+    class SCADTypeError extends TypeError {
+        constructor(message, entity) {
+            super(message);
+            this.entity = entity;
+        }
+    }
 
     class AST {
         constructor() {
             this._entities = [];
-            this._tree = new RootEntity(this);
+            this._root = new RootEntity(this);
             this._file = file;
         }
 
         get root() {
+            return this._root;
+        }
+
+        addEntity(entity, parent = this._root) {
+            parent.addChild(entity);
+            this._entities.push(entity);
+        }
+
+        addEntities(entites, parent = this._root) {
+            _.each(entites, entity => this.addEntity(parent, entity))
+        }
+
+        get tree() {
             return this._tree;
         }
 
-        set tree(x) {
-            return this._tree;
-        }
-
-        set entities(x) {
+        get entities() {
             return this._entities;
         }
     }
 
-    class Location {
-        constructor() {
-            this._location = location();
+    class CodeFile {
+        constructor(file, content = null) {
+            if (content === null)
+                content = fs.readFileSync(file, 'utf8');
+
+            this._content;
+            this._lines = content.split('\n');
+        }
+
+        get length() {
+            return this._content.length;
+        }
+
+        get lineCount() {
+            return this._lines.length;
+        }
+
+        get lines() {
+            return this._lines;
         }
     }
 
     class Entity {
-        constructor(children = null) {
+        constructor(children = null, code = '') {
             this._location = new Location();
             this._parent = null;
-            this._type = this.name.replace('Entity','');
+            //console.log(this);
+            //this._type = this.name.replace('Entity', '');
+            this._code = code;
 
-
-            if (children) {
+            //console.log(children);
+            if (_.isArray(children)) {
                 this._children = _.map(children, (child) => {
                     child.parent = this;
                     return child;
                 });
             }
+            else
+                this._children = [];
+        }
+
+        isType(type = StatementEntity) {
+            if (!this.prototype)
+                return false;
+            return this.prototype.isPrototypeOf(type);
+        }
+
+        get parent() {
+            return this._parent;
+        }
+
+        set parent(parent = null) {
+            this._parent = parent;
+        }
+
+        get type() {
+            return this._type;
+        }
+
+        get children() {
+            return this._children;
         }
 
         addChild(child) {
-            if (child instanceof StatementEntity) {
+            if (child.isType(StatementEntity)) {
                 child.parent = this;
                 this._children.push(child);
             }
 
             else
-                throw new SyntaxError(`Wrong argument 'child' type: ${typeof children}, expected: StatementEntity`);
+                throw new SyntaxError(`Wrong argument 'child' type: ${typeof child}, expected: StatementEntity or CommentEntity`);
         }
 
         addChildren(children) {
@@ -58,21 +117,6 @@ module.exports = (location, file) => {
                 _.each(children, child => this.addChild(child));
             else
                 throw new SyntaxError(`Wrong argument 'children' type: ${typeof children}, expected: array`);
-        }
-
-        getParentNode() {
-            return this._parent;
-        }
-
-        getType() {
-            return this._type;
-        }
-
-        getChildNode(index = null) {
-            if (_.isNumber(index) && index >= 0)
-                return this._children[index];
-            else
-                return this._children;
         }
 
         findEntityByType(type) {
@@ -101,63 +145,61 @@ module.exports = (location, file) => {
     }
 
     class RootEntity extends Entity {
-        constructor(children = [], ast) {
-            super('Root', children);
-            this.ast = ast;
+        constructor(children) {
+            super(children);
         }
     }
 
-    console.log(RootEntity.name);
+    class StatementEntity extends Entity {
+        constructor(children) {
+            super(children);
+        }
+    }
 
-    class CommentEntity extends Entity {
+    class CommentEntity extends StatementEntity {
         constructor(text, multiline = false) {
             super();
 
             this._text = text;
             this._multiline = multiline;
-
-            this._parent = null;
         }
-    }
 
-    class StatementEntity extends Entity {
-        constructor(name, expression) {
-            super('Variable');
+        get text() {
+            return this._text;
+        }
 
-            this.name = name;
-
-            expression.parent = this;
-            this._data = expression;
-
-            this._parent = null;
+        get multiline() {
+            return this._multiline;
         }
     }
 
     class VariableEntity extends Entity {
-        constructor(name, expression) {
-            super('Variable');
+        constructor(name, value) {
+            super();
 
-            this.name = name;
+            console.log(name, value);
+            this._name = name;
 
-            expression.parent = this;
-            this._data = expression;
-
-            this._parent = null;
+            value.parent = this;
+            this._value = value;
         }
     }
 
-    class ExpressionEntity extends Entity {
-        constructor(expression) {
-            super('Expression');
-
-            expression.parent = this;
-            this._data = expression;
-
-            this._parent = null;
+    class IncludeEntity extends StatementEntity {
+        constructor(file) {
+            super();
+            this._file = file;
         }
     }
 
-    class ModuleEntity extends Entity {
+    class UseEntity extends StatementEntity {
+        constructor(file) {
+            super();
+            this._file = file;
+        }
+    }
+
+    class ModuleEntity extends StatementEntity {
         constructor(name, params, children = null) {
             super('Module', params, children);
             this.name = name;
@@ -165,7 +207,7 @@ module.exports = (location, file) => {
         }
     }
 
-    class ValueEntity extends Entity {
+    class ValueEntity extends StatementEntity {
         constructor(value = null, negative = false) {
             super();
 
@@ -217,6 +259,22 @@ module.exports = (location, file) => {
         }
     }
 
+
+    class ExpressionEntity extends StatementEntity {
+        constructor(terms) {
+            super(terms);
+        }
+    }
+
+    class TermEntity extends Entity {
+        constructor(factors) {
+            super(factors);
+        }
+    }
+    class FactorEntity extends ValueEntity {
+    }
+
+
     class ParameterListEntity extends Entity {
         constructor(parameters, standardValuesAllowed = false) {
             super();
@@ -233,9 +291,28 @@ module.exports = (location, file) => {
         }
     }
 
-    console.log(this);
+    class Location {
+        constructor() {
+            _.each(location(), (data, key) => {
+                this[key] = data;
+            });
+        }
 
-    return {
-        Entity, RootEntity, StatementEntity, ValueEntity, ReferenceValue, NumberValue, BooleanValue, StringValue, VectorValue, RangeValue, ParameterListEntity, ParameterDefinitionList, VariableEntity, ExpressionEntity, ModuleEntity
-    };
+        toString() {
+            return JSON.stringify(this, null, 2);
+        }
+    }
+
+
+    var classes = {};
+    _.each(module.exports.toString().match(/class\s+([A-Za-z]+)[^{]+{/g),
+        match => {
+            const name = match.replace(/class\s+([A-Za-z]+).*/, '$1');
+            //TODO: find more elegant solution!!
+            eval(`classes['${name}'] = ${name};`);
+            eval(`global['${name}'] = ${name};`);
+        }
+    );
+
+    return classes;
 };
