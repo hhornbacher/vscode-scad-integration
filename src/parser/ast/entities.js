@@ -1,83 +1,6 @@
-const _ = require('lodash'),
-    fs = require('fs');
+const _ = require('lodash');
 
-
-Array.prototype.trim = function () {
-    return _.filter(this, obj => !_.isNull(obj));
-}
-
-Array.prototype.toString = function () {
-    return this.join('');
-}
-
-module.exports = (location, file) => {
-
-    class SCADTypeError extends TypeError {
-        constructor(message, entity) {
-            super(message);
-            this.entity = entity;
-        }
-    }
-
-    class SCADSyntaxError extends SyntaxError {
-        constructor(message, entity, stack = null) {
-            super(message);
-            this.entity = entity;
-        }
-    }
-
-    class AST {
-        constructor(entites) {
-            this._entities = [];
-            this._root = new RootEntity();
-            this.addEntities(entites);
-            this._file = file;
-        }
-
-        get root() {
-            return this._root;
-        }
-
-        addEntity(entity) {
-            this._root.addChild(entity);
-            this._entities.push(entity);
-        }
-
-        addEntities(entites) {
-            _.each(entites, entity => this.addEntity(this._root, entity))
-        }
-
-        get tree() {
-            return this._tree;
-        }
-
-        get entities() {
-            return this._entities;
-        }
-    }
-
-    class CodeFile {
-        constructor(file, content = null) {
-            if (content === null)
-                content = fs.readFileSync(file, 'utf8');
-
-            this._content;
-            this._lines = content.split('\n');
-        }
-
-        get length() {
-            return this._content.length;
-        }
-
-        get lineCount() {
-            return this._lines.length;
-        }
-
-        get lines() {
-            return this._lines;
-        }
-    }
-
+function Entities(location, registerClass) {
     class Entity {
         constructor(children = null, code = '') {
             this._location = new Location();
@@ -158,6 +81,7 @@ module.exports = (location, file) => {
             return results;
         }
     }
+    registerClass(Entity);
 
     class BlockEntity extends Entity {
         constructor(children = []) {
@@ -168,6 +92,7 @@ module.exports = (location, file) => {
             return !!this._root;
         }
     }
+    registerClass(BlockEntity);
 
     class RootEntity extends BlockEntity {
         constructor(children = []) {
@@ -175,12 +100,14 @@ module.exports = (location, file) => {
             this._root = true;
         }
     }
+    registerClass(RootEntity);
 
     class StatementEntity extends Entity {
         constructor(children) {
             super(children);
         }
     }
+    registerClass(StatementEntity);
 
     class CommentEntity extends StatementEntity {
         constructor(text, multiline = false) {
@@ -198,6 +125,7 @@ module.exports = (location, file) => {
             return this._multiline;
         }
     }
+    registerClass(CommentEntity);
 
     class VariableEntity extends Entity {
         constructor(name, value) {
@@ -210,6 +138,7 @@ module.exports = (location, file) => {
             this._value = value;
         }
     }
+    registerClass(VariableEntity);
 
     class IncludeEntity extends StatementEntity {
         constructor(file) {
@@ -217,6 +146,7 @@ module.exports = (location, file) => {
             this._file = file;
         }
     }
+    registerClass(IncludeEntity);
 
     class UseEntity extends StatementEntity {
         constructor(file) {
@@ -224,6 +154,7 @@ module.exports = (location, file) => {
             this._file = file;
         }
     }
+    registerClass(UseEntity);
 
     class ModuleEntity extends StatementEntity {
         constructor(name, params, children = null) {
@@ -232,6 +163,7 @@ module.exports = (location, file) => {
             this._parent = null;
         }
     }
+    registerClass(ModuleEntity);
 
     class ValueEntity extends StatementEntity {
         constructor(value = null, negative = false) {
@@ -246,57 +178,67 @@ module.exports = (location, file) => {
                 this._value = value;
         }
     }
+    registerClass(ValueEntity);
 
     class NumberValue extends ValueEntity {
         constructor(value, negative = false) {
             super(value, negative);
         }
     }
+    registerClass(NumberValue);
 
     class BooleanValue extends ValueEntity {
         constructor(value) {
             super(value);
         }
     }
+    registerClass(BooleanValue);
 
     class StringValue extends ValueEntity {
         constructor(value) {
             super(value);
         }
     }
+    registerClass(StringValue);
 
     class VectorValue extends ValueEntity {
         constructor(value, negative = false) {
             super(value, negative);
         }
     }
+    registerClass(VectorValue);
 
     class RangeValue extends VectorValue {
         constructor(start, end, increment = 1) {
             super({ start, end, increment });
         }
     }
+    registerClass(RangeValue);
 
     class ReferenceValue extends ValueEntity {
         constructor(name, negative = false) {
             super(name, negative);
         }
     }
+    registerClass(ReferenceValue);
 
     class ExpressionEntity extends StatementEntity {
         constructor(terms) {
             super(terms);
         }
     }
+    registerClass(ExpressionEntity);
 
     class TermEntity extends Entity {
         constructor(factors) {
             super(factors);
         }
     }
+    registerClass(TermEntity);
 
     class FactorEntity extends ValueEntity {
     }
+    registerClass(FactorEntity);
 
     class ParameterListEntity extends Entity {
         constructor(parameters, standardValuesAllowed = false) {
@@ -305,6 +247,7 @@ module.exports = (location, file) => {
             this._parent = null;
         }
     }
+    registerClass(ParameterListEntity);
 
     class ParameterEntity extends ExpressionEntity {
         constructor(name, value = null) {
@@ -313,29 +256,7 @@ module.exports = (location, file) => {
                 this._name = name;
         }
     }
-
-    class Location {
-        constructor() {
-            _.each(location(), (data, key) => {
-                this[key] = data;
-            });
-        }
-
-        toString() {
-            return JSON.stringify(this, null, 2);
-        }
-    }
-
-
-    var classes = {};
-    _.each(module.exports.toString().match(/class\s+([A-Za-z]+)[^{]+{/g),
-        match => {
-            const name = match.replace(/class\s+([A-Za-z]+).*/, '$1');
-            //TODO: find more elegant solution!!
-            eval(`classes['${name}'] = ${name};`);
-            eval(`global['${name}'] = ${name};`);
-        }
-    );
-
-    return classes;
+    registerClass(ParameterEntity);
 };
+
+module.exports = Entities;
