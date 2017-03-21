@@ -1,3 +1,6 @@
+const _inspect = require('util').inspect;
+global.inspect = (obj) => console.log(_inspect(obj, { showHidden: true, depth: null}));
+
 const _ = require('lodash'),
   fs = require('fs'),
   pegParser = require('./scad-peg-parser');
@@ -31,10 +34,7 @@ const SCADParser = module.exports = {
 
 try {
   const ast = SCADParser.getAST('../../example/ex2.scad');
-  console.log(_.find(ast.findNodeByType('Variable'), { name: 'row' }).data.data[0].children);
-
+  inspect(ast);
 } catch (error) {
-  console.log(error);
-  if (error.entity)
-    console.log(error.entity);
+  inspect(error);
 }

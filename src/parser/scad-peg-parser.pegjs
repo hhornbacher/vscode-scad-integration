@@ -1,35 +1,11 @@
 {
-    /*const astModule = */require('./ast')(location, options.file);
-    // const {
-    //     AST, 
-    //     CodeFile,
-    //     Entity,
-    //     RootEntity,
-    //     IncludeEntity,
-    //     UseEntity, 
-    //     ParameterEntity,
-    //     StatementEntity, 
-    //     ValueEntity,
-    //     ReferenceValue,
-    //     NumberValue, 
-    //     BooleanValue,
-    //     StringValue,
-    //     VectorValue,
-    //     RangeValue,
-    //     ParameterListEntity,
-    //     VariableEntity,
-    //     ExpressionEntity,
-    //     ModuleEntity
-    // } = astModule;
-
-    const ast = new AST();
-
-
+    require('./ast')(location, options.file);
     console.log('Parsing...');
+
 }
 
 start = ws? statements:statement* ws?  { 
-    return ast.addEntites(statements); 
+    return new RootEntity(statements); 
      }
 
 // --------------------------------------------------------------------------------------------------
@@ -43,25 +19,31 @@ statement "Statement"
     / statement:action ws? { return statement; }
 
 // --------------------------------------------------------------------------------------------------
+// Blocks
+block = blockOpen children:statement* blockClose { return new BlockEntity(children); }
+blockOpen = ws? '{' ws?
+blockClose = ws? '}' ws?
+
+// --------------------------------------------------------------------------------------------------
 // Comments
 comment "Comment"
     = '/*' head:[^*]* '*'+ tail:([^/*] [^*]* '*'+)* '/' { 
-        return new CommentEntity(head.join('') + _.map(tail, (element) => {
-            return element[0] + element[1].join('');
+        return new CommentEntity(head.toString() + _.map(tail, (element) => {
+            return element[0] + element[1].toString();
         }), true);
     }
-    / '//' text:[^\n]* '\n' { return new CommentEntity(text.join('')); }
+    / '//' text:[^\n]* '\n' { return new CommentEntity(text.toString()); }
 
 // --------------------------------------------------------------------------------------------------
 // Includes
 include "Include"
-    = 'include' ws? includeOpen path:includeFile includeClose eos { return new IncludeEntity(null,path); }
-    / 'use' ws? includeOpen path:includeFile includeClose eos { return new UseEntity(null,path); }
+    = 'include' ws? includeOpen path:includeFile includeClose eos { return new IncludeEntity(path); }
+    / 'use' ws? includeOpen path:includeFile includeClose eos { return new UseEntity(path); }
 
 includeOpen = ws? '<' ws?
 includeClose = ws? '>' ws?
 
-includeFile = ws? path:[\.A-Za-z0-9\-_/]+ ws? { return path.join(''); }
+includeFile = ws? path:[\.A-Za-z0-9\-_/]+ ws? { return path.toString(); }
 
 
 // --------------------------------------------------------------------------------------------------
@@ -112,8 +94,8 @@ actionModifiers "Modifiers"
 // --------------------------------------------------------------------------------------------------
 // Variables
 variable "Variable definition"
-    = name:name assign expression:expression  eos { 
-            return new VariableEntity(name, expression);
+    = name:name assign value:expression  eos { 
+            return new VariableEntity(name, value);
              }
 
 
@@ -122,15 +104,24 @@ variable "Variable definition"
 
 // Float
 float  "Float"
-    =  ws? neg:'-'? ws? value:[0-9\.]+ { return new NumberValue(parseFloat(value.join(''),10), neg); }
+    =  ws? neg:'-'? ws? value:[0-9\.]+ { return new NumberValue(parseFloat(value.toString(),10), neg); }
 
 // String
 string "String"
-    =  quotationMark value:chars* quotationMark { return new StringValue(value.join('')); }
+    =  quotationMark value:chars* quotationMark { return new StringValue(value.toString()); }
 chars
   = [^\0-\x1F\x22\x5C]
 quotationMark "Quotation mark"
   = ws? '"' ws?
+
+// Range
+range "Range"
+    =  ws? neg:'-'? ws? rangeBracketOpen definition:rangeDefinition rangeBracketClose {  return new RangeValue(definition.start, definition.middle, definition.tail); }
+rangeBracketOpen "Range open bracket"
+    = ws? '[' ws?
+rangeBracketClose "Range close bracket"
+    = ws? ']' ws?
+rangeDefinition = comment? start:expression ':'  middle:expression tail:(':' expression)? { return { start, middle, tail: tail }; }
 
 // Vector
 vector "Vector"
@@ -152,13 +143,14 @@ value
     = reference
     / float
     / string
+    / range
     / vector
 
 // --------------------------------------------------------------------------------------------------
 // Names (Varaibles, Functions, Actions, Modules)
 name "Name"
-     =  head:[A-Za-z] tail:[A-Za-z0-9_]* ws? { return head + (tail.join('') || ''); }
-     /  head:'$' tail:[A-Za-z0-9_]+ ws? { return head + (tail.join('') || ''); }
+     =  head:[A-Za-z] tail:[A-Za-z0-9_]* ws? { return head + (tail.toString() || ''); }
+     /  head:'$' tail:[A-Za-z0-9_]+ ws? { return head + (tail.toString() || ''); }
 
 // --------------------------------------------------------------------------------------------------
 // Terms
@@ -200,35 +192,29 @@ factor
 parameterList 
     = parameterOpen  head:parameterListItem?  tail:(comma parameterListItem)* parameterClose { 
         if(tail.length > 0)
-            return new ParameterList(_.concat([],head, tail));
+            return new ParameterListEntity(_.concat(head, tail));
         else
-            return new ParameterList([head]);
+            return new ParameterListEntity([head]);
     }
 
 parameterListItem 
-    = name:name assign value:expression { return {name, value}; }
-    / value:expression { return {value}; }
-parameterOpen = ws? '(' ws?
-parameterClose = ws? ')' ws?
+    = name:name assign value:expression { return new ParameterEntity(name, value); }
+    / value:expression { return new ParameterEntity(null, value); }
+parameterOpen = '(' ws?
+parameterClose = ')' ws?
 
 // Parameter definitions  (Functions, Modules)
 parameterDefinitionList 
     = parameterOpen  head:parameterDefinitionListItem?  tail:(comma parameterDefinitionListItem)* parameterClose { 
         if(tail.length > 0)
-            return new ParameterDefinitionList(_.concat([],head, tail));
+            return new ParameterListEntity(_.concat(head, tail), true);
         else
-            return new ParameterDefinitionList([head]);
+            return new ParameterListEntity([head], true);
     }
 
 parameterDefinitionListItem 
-    = name:name assign value:value { return {name,value}; }
+    = name:name assign value:value { return {[name]:value}; }
     / name
-
-// --------------------------------------------------------------------------------------------------
-// Blocks
-block = blockOpen block:statement* blockClose {return block;}
-blockOpen = ws? '{' ws?
-blockClose = ws? '}' ws?
 
 // --------------------------------------------------------------------------------------------------
 // Assignment

@@ -10,44 +10,12 @@ Array.prototype.toString = function () {
     return this.join('');
 }
 
-const registerClass = function (c) {
-    global[c.name] = c;
-};
 
 module.exports = (location, file) => {
-    require('./errors')(location, file, registerClass);
 
-
-    class AST {
-        constructor(entites) {
-            this._entities = [];
-            this._root = new RootEntity();
-            this.addEntities(entites);
-            this._file = file;
-        }
-
-        get root() {
-            return this._root;
-        }
-
-        addEntity(entity) {
-            this._root.addChild(entity);
-            this._entities.push(entity);
-        }
-
-        addEntities(entites) {
-            _.each(entites, entity => this.addEntity(this._root, entity))
-        }
-
-        get tree() {
-            return this._tree;
-        }
-
-        get entities() {
-            return this._entities;
-        }
-    }
-    registerClass(AST);
+    const registerClass = function (c) {
+        global[c.name] = c;
+    };
 
     class CodeFile {
         constructor(file, content = null) {
@@ -85,12 +53,6 @@ module.exports = (location, file) => {
     }
     registerClass(Location);
 
-
-    require('./entities')(location, registerClass);
+    require('./errors')(file, registerClass);
+    require('./entities')(file, registerClass);
 };
-
-module.exports((x) => {
-    return { mock: true }
-}, './mock');
-
-console.log(global);

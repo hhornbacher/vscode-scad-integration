@@ -1,16 +1,13 @@
 const _ = require('lodash');
 
-function Entities(location, registerClass) {
+function Entities(file, registerClass) {
     class Entity {
-        constructor(children = null, code = '') {
+        constructor(children = null) {
             this._location = new Location();
             this._parent = null;
-            //console.log(this);
-            //this._type = this.name.replace('Entity', '');
-            this._code = code;
 
-            //console.log(children);
             if (_.isArray(children)) {
+                children = children.trim();
                 this._children = _.map(children, (child) => {
                     child.parent = this;
                     return child;
@@ -24,6 +21,10 @@ function Entities(location, registerClass) {
             if (!this.prototype)
                 return false;
             return this.prototype.isPrototypeOf(type);
+        }
+
+        get code() {
+
         }
 
         get parent() {
@@ -47,9 +48,6 @@ function Entities(location, registerClass) {
                 child.parent = this;
                 this._children.push(child);
             }
-
-            else
-                throw new SCADSyntaxError(`Wrong argument 'child' type: ${child.constructor.name}, expected: StatementEntity or CommentEntity`, child);
         }
 
         addChildren(children) {
@@ -97,7 +95,9 @@ function Entities(location, registerClass) {
     class RootEntity extends BlockEntity {
         constructor(children = []) {
             super(children);
+            delete this._parent;
             this._root = true;
+            this._file = file;
         }
     }
     registerClass(RootEntity);
@@ -130,8 +130,6 @@ function Entities(location, registerClass) {
     class VariableEntity extends Entity {
         constructor(name, value) {
             super();
-
-            console.log(name, value);
             this._name = name;
 
             value.parent = this;
@@ -210,8 +208,12 @@ function Entities(location, registerClass) {
 
     class RangeValue extends VectorValue {
         constructor(start, end, increment = 1) {
-            super({ start, end, increment });
+            super([start, end, increment]);
         }
+
+        get start() { return this.children[0]; }
+        get end() { return this.children[1]; }
+        get increment() { return this.children[2]; }
     }
     registerClass(RangeValue);
 
