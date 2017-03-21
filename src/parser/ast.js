@@ -1,6 +1,15 @@
 const _ = require('lodash'),
     fs = require('fs');
 
+
+Array.prototype.trim = function () {
+    return _.filter(this, obj => !_.isNull(obj));
+}
+
+Array.prototype.toString = function () {
+    return this.join('');
+}
+
 module.exports = (location, file) => {
 
     class SCADTypeError extends TypeError {
@@ -10,10 +19,18 @@ module.exports = (location, file) => {
         }
     }
 
+    class SCADSyntaxError extends SyntaxError {
+        constructor(message, entity, stack = null) {
+            super(message);
+            this.entity = entity;
+        }
+    }
+
     class AST {
-        constructor() {
+        constructor(entites) {
             this._entities = [];
-            this._root = new RootEntity(this);
+            this._root = new RootEntity();
+            this.addEntities(entites);
             this._file = file;
         }
 
@@ -21,13 +38,13 @@ module.exports = (location, file) => {
             return this._root;
         }
 
-        addEntity(entity, parent = this._root) {
-            parent.addChild(entity);
+        addEntity(entity) {
+            this._root.addChild(entity);
             this._entities.push(entity);
         }
 
-        addEntities(entites, parent = this._root) {
-            _.each(entites, entity => this.addEntity(parent, entity))
+        addEntities(entites) {
+            _.each(entites, entity => this.addEntity(this._root, entity))
         }
 
         get tree() {
@@ -109,14 +126,12 @@ module.exports = (location, file) => {
             }
 
             else
-                throw new SyntaxError(`Wrong argument 'child' type: ${typeof child}, expected: StatementEntity or CommentEntity`);
+                throw new SCADSyntaxError(`Wrong argument 'child' type: ${child.constructor.name}, expected: StatementEntity or CommentEntity`, child);
         }
 
         addChildren(children) {
             if (_.isArray(children))
                 _.each(children, child => this.addChild(child));
-            else
-                throw new SyntaxError(`Wrong argument 'children' type: ${typeof children}, expected: array`);
         }
 
         findEntityByType(type) {
@@ -144,9 +159,20 @@ module.exports = (location, file) => {
         }
     }
 
-    class RootEntity extends Entity {
-        constructor(children) {
+    class BlockEntity extends Entity {
+        constructor(children = []) {
             super(children);
+        }
+
+        isRoot() {
+            return !!this._root;
+        }
+    }
+
+    class RootEntity extends BlockEntity {
+        constructor(children = []) {
+            super(children);
+            this._root = true;
         }
     }
 
@@ -218,8 +244,6 @@ module.exports = (location, file) => {
 
             if (value)
                 this._value = value;
-
-            this._parent = null;
         }
     }
 
@@ -259,7 +283,6 @@ module.exports = (location, file) => {
         }
     }
 
-
     class ExpressionEntity extends StatementEntity {
         constructor(terms) {
             super(terms);
@@ -271,9 +294,9 @@ module.exports = (location, file) => {
             super(factors);
         }
     }
+
     class FactorEntity extends ValueEntity {
     }
-
 
     class ParameterListEntity extends Entity {
         constructor(parameters, standardValuesAllowed = false) {
