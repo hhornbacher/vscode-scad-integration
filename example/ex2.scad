@@ -1,5 +1,5 @@
 include <../vfd-frame-m202sd16/tools.scad>;
-//include <../vfd-frame-m202sd16/junctions.scad>;
+include <../vfd-frame-m202sd16/junctions.scad>;
 
 tollerance=(0.8*$t);
 
@@ -64,7 +64,6 @@ module tubeHolder() {
             }
         }
 
-        /*
         // Add support walls
         for (row=[0:(rows-2)]) {
             for (column=[0:(columns-2)]) {
@@ -84,26 +83,26 @@ module tubeHolder() {
                 }
             }
         }
-        */
     }
 }
 
 
 
 union() {
-/*    color("lightGray") {
+        
+    color("lightGray") {
         *shell([totalWidth,totalHeight,totalDepth+wallThickness]);
-        echo(str("totalWidth = ", totalWidth+(2*wallThickness)));
-        echo(str("totalHeight = ", totalHeight+(2*wallThickness)));
-        echo(str("totalDepth = ", totalDepth+wallThickness));
+        /*echo(str("totalWidth = ", totalWidth+(2*wallThickness)));*/
+        /*echo(str("totalHeight = ", totalHeight+(2*wallThickness)));
+        echo(str("totalDepth = ", totalDepth+wallThickness));*/
     }
     difference() {
-        
+         
+        /*
         color("darkGreen") {
             translate([wallThickness+tollerance,wallThickness+tollerance,wallThickness+bodyDepth])
             tubeHolder();
-        }
-        #color("orange") {
+        }#color("orange") {
             if(totalWidth>totalHeight) {
                 translate([(totalWidth/2)+wallThickness, (totalHeight/2)+wallThickness, -((totalDepth/100)+wallThickness)]) {
                     scale([1, totalHeight/totalWidth, ((totalDepth+wallThickness)*2)/totalWidth]) {
@@ -118,6 +117,6 @@ union() {
                     }
                 }
             }
-        }
-    }*/
+        }*/
+    }
 }

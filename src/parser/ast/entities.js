@@ -2,19 +2,16 @@ const _ = require('lodash');
 
 function Entities(file, registerClass) {
     class Entity {
-        constructor(children = null) {
+        constructor(children) {
             this._location = new Location();
-            this._parent = null;
 
             if (_.isArray(children)) {
                 children = children.trim();
                 this._children = _.map(children, (child) => {
-                    child.parent = this;
+                    child._parent = this;
                     return child;
                 });
             }
-            else
-                this._children = [];
         }
 
         isType(type = StatementEntity) {
@@ -41,18 +38,6 @@ function Entities(file, registerClass) {
 
         get children() {
             return this._children;
-        }
-
-        addChild(child) {
-            if (child.isType(StatementEntity)) {
-                child.parent = this;
-                this._children.push(child);
-            }
-        }
-
-        addChildren(children) {
-            if (_.isArray(children))
-                _.each(children, child => this.addChild(child));
         }
 
         findEntityByType(type) {
@@ -82,7 +67,7 @@ function Entities(file, registerClass) {
     registerClass(Entity);
 
     class BlockEntity extends Entity {
-        constructor(children = []) {
+        constructor(children) {
             super(children);
         }
 
@@ -93,9 +78,8 @@ function Entities(file, registerClass) {
     registerClass(BlockEntity);
 
     class RootEntity extends BlockEntity {
-        constructor(children = []) {
+        constructor(children) {
             super(children);
-            delete this._parent;
             this._root = true;
             this._file = file;
         }
@@ -103,9 +87,6 @@ function Entities(file, registerClass) {
     registerClass(RootEntity);
 
     class StatementEntity extends Entity {
-        constructor(children) {
-            super(children);
-        }
     }
     registerClass(StatementEntity);
 
@@ -132,7 +113,7 @@ function Entities(file, registerClass) {
             super();
             this._name = name;
 
-            value.parent = this;
+            value._parent = this;
             this._value = value;
         }
     }
@@ -146,31 +127,58 @@ function Entities(file, registerClass) {
     }
     registerClass(IncludeEntity);
 
-    class UseEntity extends StatementEntity {
-        constructor(file) {
-            super();
-            this._file = file;
-        }
+    class UseEntity extends IncludeEntity {
     }
     registerClass(UseEntity);
 
     class ModuleEntity extends StatementEntity {
-        constructor(name, params, children = null) {
-            super('Module', params, children);
-            this.name = name;
-            this._parent = null;
+        constructor(name, params, block) {
+            super();
+            this._name = name;
+
+            //if (block.isType(BlockEntity)) {
+            this._block = block;
+            //}
+            if (params.isType(ParameterListEntity)) {
+                this._params = params;
+            }
         }
     }
     registerClass(ModuleEntity);
+
+
+    class ActionEntity extends StatementEntity {
+        constructor(name, params, modifier, operators, block) {
+            super();
+            this._name = name;
+            this._modifier = modifier;
+
+            if (block) {
+                this._block = block;
+            }
+
+            if (params.isType(ParameterListEntity)) {
+                this._params = params;
+            }
+
+            if (_.isArray(operators)) {
+                this._operators = _.map(operators.trim(), (operator) => {
+                    operator._parent = this;
+                    return operator;
+                });
+            }
+            else
+                this._operators = [];
+        }
+    }
+    registerClass(ActionEntity);
 
     class ValueEntity extends StatementEntity {
         constructor(value = null, negative = false) {
             super();
 
             if (negative)
-                this.negative = true;
-            else
-                this.negative = false;
+                this._negative = true;
 
             if (value)
                 this._value = value;
@@ -219,7 +227,8 @@ function Entities(file, registerClass) {
 
     class ReferenceValue extends ValueEntity {
         constructor(name, negative = false) {
-            super(name, negative);
+            super(null, negative);
+            this._name = name;
         }
     }
     registerClass(ReferenceValue);
@@ -246,16 +255,17 @@ function Entities(file, registerClass) {
         constructor(parameters, standardValuesAllowed = false) {
             super();
             this._parameters = parameters;
+            this._standardValuesAllowed = standardValuesAllowed;
             this._parent = null;
         }
     }
     registerClass(ParameterListEntity);
 
     class ParameterEntity extends ExpressionEntity {
-        constructor(name, value = null) {
+        constructor(value = null) {
             super();
-            if (name)
-                this._name = name;
+            if (value)
+                this._value = value;
         }
     }
     registerClass(ParameterEntity);

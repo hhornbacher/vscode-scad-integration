@@ -32,7 +32,7 @@ comment "Comment"
             return element[0] + element[1].toString();
         }), true);
     }
-    / '//' text:[^\n]* '\n' { return new CommentEntity(text.toString()); }
+    / '//' ' '? text:[^\n]* '\n' { return new CommentEntity(text.toString()); }
 
 // --------------------------------------------------------------------------------------------------
 // Includes
@@ -60,36 +60,19 @@ function
 // Actions
 action
     = modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* eos { 
-        return null/*new Entity('Action', {name, params, modifier}, operators)*/;
+        return new ActionEntity(name, params, modifier, operators);
     }
     / modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* block:block { 
-        return null/*new Entity('OperatorAction', {name, params, operators, modifier}, block)*/;
+        return new ActionEntity(name, params, modifier, operators, block);
     }
 
 actionOperators
-    = modifier:actionModifiers? name:name params:parameterList { 
-            let data = {
-                name, 
-                params
-            };
-            if(modifier)
-                data.modifier = modifier.modifier;
-            return null/*new Entity('ActionOperator', data)*/;
-        }
+    = modifier:actionModifiers? name:name params:parameterList { return new ActionEntity(name, params, modifier); }
 
 actionModifiers "Modifiers"
-    = ws? '#' ws? { 
-            return null/*new Entity('ActionModifier', 'highlight')*/;
+    = modifier:[#%!*] ws? { 
+            return modifier;
          }
-    / ws? '%' ws? { 
-            return null/*new Entity('ActionModifier', 'transparent')*/;
-        }
-    / ws? '!' ws? {
-            return null/*new Entity('ActionModifier', 'showOnly')*/;
-          }
-    / ws? '*' ws? { 
-            return null/*new Entity('ActionModifier', 'disable')*/;
-        }
 
 // --------------------------------------------------------------------------------------------------
 // Variables
@@ -111,24 +94,24 @@ string "String"
     =  quotationMark value:chars* quotationMark { return new StringValue(value.toString()); }
 chars
   = [^\0-\x1F\x22\x5C]
-quotationMark "Quotation mark"
-  = ws? '"' ws?
+quotationMark
+  = '"' ws?
 
 // Range
 range "Range"
-    =  ws? neg:'-'? ws? rangeBracketOpen definition:rangeDefinition rangeBracketClose {  return new RangeValue(definition.start, definition.middle, definition.tail); }
-rangeBracketOpen "Range open bracket"
-    = ws? '[' ws?
-rangeBracketClose "Range close bracket"
-    = ws? ']' ws?
+    = rangeBracketOpen definition:rangeDefinition rangeBracketClose {  return new RangeValue(definition.start, definition.middle, definition.tail); }
+rangeBracketOpen
+    = '[' ws?
+rangeBracketClose
+    = ']' ws?
 rangeDefinition = comment? start:expression ':'  middle:expression tail:(':' expression)? { return { start, middle, tail: tail }; }
 
 // Vector
 vector "Vector"
     =  ws? neg:'-'? ws? vectorBracketOpen values:vectorList vectorBracketClose {  return new VectorValue(values, neg); }
-vectorBracketOpen "Vector open bracket"
+vectorBracketOpen
     = ws? '[' ws?
-vectorBracketClose "Vector close bracket"
+vectorBracketClose
     = ws? ']' ws?
 vectorList = comment? head:expression?  tail:(vectorListTail)* { return _.concat({value:head}, tail); }
 vectorListTail = comma comment? value:expression {return value;}
@@ -196,10 +179,13 @@ parameterList
         else
             return new ParameterListEntity([head]);
     }
-
 parameterListItem 
-    = name:name assign value:expression { return new ParameterEntity(name, value); }
-    / value:expression { return new ParameterEntity(null, value); }
+    = name:(name assign)? value:expression { 
+            if(_.isArray(name))
+                return new ParameterEntity(new VariableEntity(name[0], value)); 
+            else
+                return new ParameterEntity(value);
+        }
 parameterOpen = '(' ws?
 parameterClose = ')' ws?
 
@@ -213,8 +199,12 @@ parameterDefinitionList
     }
 
 parameterDefinitionListItem 
-    = name:name assign value:value { return {[name]:value}; }
-    / name
+    = name:(name assign)? value:expression { 
+            if(_.isArray(name))
+                return new ParameterEntity(new VariableEntity(name[0], value)); 
+            else
+                return new ParameterEntity(value);
+        }
 
 // --------------------------------------------------------------------------------------------------
 // Assignment
