@@ -15,13 +15,11 @@ function Entities(file, registerClass) {
         }
 
         isType(type = StatementEntity) {
+            if (!_.isFunction(type) || !type.name || !/.*Entity/.test(type.name))
+                throw Error('Wrong parameter type!');
             if (!this.prototype)
                 return false;
-            return this.prototype.isPrototypeOf(type);
-        }
-
-        get code() {
-
+            return this.prototype.isPrototypeOf(type) || false;
         }
 
         get parent() {
@@ -37,31 +35,16 @@ function Entities(file, registerClass) {
         }
 
         get children() {
-            return this._children;
+            return this._children || null;
         }
 
-        findEntityByType(type) {
-            let results = [];
+        getChildrenOfType(type) {
+            if (!this._children)
+                return null;
+            if (!type)
+                return this._children;
 
-            if (this.name === type)
-                results.push(this);
-
-            if (this._children) {
-                const recurse = (children, depth = 0, limit = 10) => {
-                    _.each(children, child => {
-                        if (child.type === type)
-                            results.push(child);
-                        if (depth < limit) {
-                            if (child.children) {
-                                recurse(child.children, depth + 1);
-                            }
-                        }
-                    });
-                };
-                recurse(this._children);
-            }
-
-            return results;
+            return _.find(this._children, (child) => child.isType(type));
         }
     }
     registerClass(Entity);
@@ -146,6 +129,20 @@ function Entities(file, registerClass) {
     }
     registerClass(ModuleEntity);
 
+    class ForLoopEntity extends StatementEntity {
+        constructor(params, block) {
+            super();
+            
+            if (block) {
+                this._block = block;
+            }
+
+            if (params.isType(ForLoopParameterListEntity)) {
+                this._params = params;
+            }
+        }
+    }
+    registerClass(ForLoopEntity);
 
     class ActionEntity extends StatementEntity {
         constructor(name, params, modifier, operators, block) {
@@ -256,7 +253,14 @@ function Entities(file, registerClass) {
             super();
             this._parameters = parameters;
             this._standardValuesAllowed = standardValuesAllowed;
-            this._parent = null;
+        }
+    }
+    registerClass(ParameterListEntity);
+
+    class ForLoopParameterListEntity extends Entity {
+        constructor(parameters) {
+            super();
+            this._parameters = parameters;
         }
     }
     registerClass(ParameterListEntity);

@@ -1,9 +1,3 @@
-{
-    require('./ast')(location, options.file);
-    console.log('Parsing...');
-
-}
-
 start = ws? statements:statement* ws?  { 
     return new RootEntity(statements); 
      }
@@ -15,7 +9,7 @@ statement "Statement"
     / statement:module ws? { return statement; }
     / statement:include ws? { return statement; }
     / statement:function ws? { return statement; }
-    / statement:variable ws? { return statement; }
+    / statement:variable ws? { return statement; }  
     / statement:action ws? { return statement; }
 
 // --------------------------------------------------------------------------------------------------
@@ -73,6 +67,15 @@ actionModifiers "Modifiers"
     = modifier:[#%!*] ws? { 
             return modifier;
          }
+// --------------------------------------------------------------------------------------------------
+// For loops
+forLoop
+    = 'for' ws? '(' ws? params:forLoopParameterList ')' ws? block:block eos { 
+        return new ForLoopEntity(params, modifier, operators);
+    }
+
+forLoopParameterList
+    = [^)]+ { return new ForLoopParameterListEntity([]); }
 
 // --------------------------------------------------------------------------------------------------
 // Variables
@@ -153,15 +156,9 @@ term "Term"
             return new TermEntity([head]);
           }
 
-// termOperator = ws? operator:[-+*/] ws?
-
-
 termOperator "Mathematical operator"
-    = op:'+' ws? { return 'Add'; }
-    / op:'-' ws? { return 'Subract'; }
-    / op:'*' ws? { return 'Multiply'; }
-    / op:'/' ws? { return 'Divide'; }
-    / op:'%' ws? { return 'Modulo'; }
+    = op:[+\-*/%] ws? { return op[0]; }
+
 
 termGroupOpen = ws? '(' ws?
 termGroupClose = ws? ')' ws?

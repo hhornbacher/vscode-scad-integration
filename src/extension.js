@@ -1,32 +1,20 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const { window, commands, languages } = require('vscode'),
     _ = require('lodash'),
-    scadDefinitionProvider = require('./scadDefinitionProvider');
+    scadDefinitionProvider = require('./scad-definition-provider');
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
+// Activate extension features
 function activate(context) {
+    console.log('Extension "openscad-integration" is now activated!');
 
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "openscad-integration" is now active!');
-
-    console.log(context)
-
-    let featureDisposables = [];
-
-    featureDisposables += commands.registerCommand('extension.sayHello', function () {
-        window.showInformationMessage('Hello World!');
-    });
-
-    featureDisposables += languages.registerDefinitionProvider('scad', new scadDefinitionProvider());
+    let featureDisposables = [
+        languages.registerDefinitionProvider('scad', new scadDefinitionProvider())
+    ];
 
     _.each(featureDisposables, disposable => context.subscriptions.push(disposable));
 }
-exports.activate = activate;
 
-// this method is called when your extension is deactivated
+// Cleanup when getting deactivated
 function deactivate() {
 }
-exports.deactivate = deactivate;
+
+module.exports = { activate, deactivate };

@@ -15,7 +15,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:extension.sayHello",
     "onLanguage:scad"
   ],
   "main": "./src/extension",
@@ -31,12 +30,6 @@
           ".scad"
         ],
         "configuration": "./scad.configuration.json"
-      }
-    ],
-    "commands": [
-      {
-        "command": "extension.sayHello",
-        "title": "Hello World"
       }
     ],
     "snippets": [
@@ -58,16 +51,13 @@
     "test": "node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
-    "typescript": "^2.0.3",
-    "vscode": "^1.0.0",
     "mocha": "^2.3.3",
-    "eslint": "^3.6.0",
-    "@types/node": "^6.0.40",
-    "@types/mocha": "^2.2.32"
+    "vscode": "^1.0.0"
   },
   "dependencies": {
     "bluebird": "^3.5.0",
     "lodash": "^4.17.4",
-    "pegjs": "^0.10.0"
+    "pegjs": "^0.10.0",
+    "vscode-languageclient": "^3.2.0"
   }
 }
