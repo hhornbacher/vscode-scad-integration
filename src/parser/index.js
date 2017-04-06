@@ -4,12 +4,20 @@ const _ = require('lodash'),
 
 require('./ast')(() => ({}), '../../example/ex3.scad');
 
+class Trace {
+  constructor(trace) {
+
+  }
+}
+
+let cache = [],
+  codeCache = [],
+  trace = [];
+
 const SCADParser = module.exports = {
-  cache: [],
-  codeCache: [],
   getAST: (file = null, code = null, useCache = true) => {
-    if (useCache && SCADParser.cache[file])
-      return SCADParser.cache[file];
+    if (useCache && cache[file])
+      return cache[file];
 
     if (!_.isString(file) && !_.isString(code))
       throw new Error('You have to pass either code or file parameter!');
@@ -17,13 +25,14 @@ const SCADParser = module.exports = {
     if (code) {
       try {
         if (useCache) {
-          SCADParser.codeCache[file] = code;
-          SCADParser.cache[file] = pegParser.parse(code, {
+          codeCache[file] = code;
+          cache[file] = pegParser.parse(code, {
+            tracer: (trace) => trace.push(new Trace(trace)),
             file: file
           });
         }
         else {
-          SCADParser.codeCache[file] = code;
+          codeCache[file] = code;
           pegParser.parse(code, {
             file: file
           });
@@ -35,8 +44,8 @@ const SCADParser = module.exports = {
     else {
       let code = fs.readFileSync(file, 'utf8');
       if (useCache) {
-        SCADParser.codeCache[file] = code;
-        SCADParser.cache[file] = pegParser.parse(code, {
+        codeCache[file] = code;
+        cache[file] = pegParser.parse(code, {
           file: file
         });
       }
@@ -47,11 +56,11 @@ const SCADParser = module.exports = {
       }
     }
 
-    return SCADParser.cache[file];
+    return cache[file];
   },
   getCodeExcerpt: (file, location, offset = 6) => {
-    let lines = SCADParser.codeCache[file].split('\n');
-    let output = '[...]\n';
+    let lines = codeCache[file].split('\n');
+    let output = `Code excerpt: ${file}\n[...]\n`;
     let start = location.start.line - (1 + offset);
     let end = location.end.line + offset - 1;
     for (let i = start; i < end; i++) {
@@ -63,7 +72,6 @@ const SCADParser = module.exports = {
         output += '^';
         _.times((location.end.column - location.start.column) - 1, () => { output += '~' });
         output += '\n';
-        
       }
     }
     return output + '[...]';
@@ -73,10 +81,10 @@ const SCADParser = module.exports = {
 
 try {
   const ast = SCADParser.getAST('../../example/ex3.scad');
-  console.log(ast);
+  console.log(require('util').inspect(ast, true, 8, true));
 } catch (error) {
   if (error.location)
-    console.log(`${error.message}\n${SCADParser.getCodeExcerpt('../../example/ex3.scad', error.location)}`, error.location);
+    console.log(`${error.message}\n${SCADParser.getCodeExcerpt('../../example/ex3.scad', error.location)}`);
   else
     console.log(error);
 }

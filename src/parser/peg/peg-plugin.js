@@ -1,6 +1,8 @@
 const fs = require('fs'),
   _ = require('lodash');
 
+const initializerCode = fs.readFileSync(require.resolve('./peg-initializer'), 'utf8');
+
 const injectInitializer = (grammar, code) => {
   if (!grammar.initializer) {
     grammar.initializer = {
@@ -24,29 +26,14 @@ const injectInitializer = (grammar, code) => {
   return grammar;
 }
 
-const returnMagic = (grammar, code) => {
-  const scanTree = (node, parent = null) => {
 
-  };
-
-
-  _.each(grammar.rules, rule => {
-    if (!rule.code)
-      console.log(require('util').inspect(rule, { showHidden: true, depth: null }));
-  });
-  return grammar;
-}
-
-
-const initializerCode = fs.readFileSync(require.resolve('./peg-initializer'), 'utf8');
 const pegPlugin = {
   transform: (grammar) => {
-    //console.log(require('util').inspect(grammar, { showHidden: true, depth: null }));
     grammar = injectInitializer(grammar, initializerCode);
-    grammar = returnMagic(grammar, initializerCode);
     return grammar;
   },
   use: (config) => {
+    console.log(config);
     config.passes.transform.push(pegPlugin.transform);
   }
 };

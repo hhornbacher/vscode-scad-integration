@@ -9,7 +9,7 @@
         "commands": [
             {
                 "match": "\\.pegjs$",
-                "cmd": "pegjs --plugin ${fileDirname}/peg-plugin.js ${file}"
+                "cmd": "pegjs --trace --plugin ${fileDirname}/peg-plugin.js ${file} > ${fileDirname}/pegjs.log"
             }
         ]
     }
