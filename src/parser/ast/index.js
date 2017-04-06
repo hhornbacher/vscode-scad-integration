@@ -17,7 +17,7 @@ module.exports = (location, file) => {
         global[c.name] = c;
     };
 
-    class CodeFile {
+/*    class CodeFile {
         constructor(file, content = null) {
             if (content === null)
                 content = fs.readFileSync(file, 'utf8');
@@ -38,13 +38,19 @@ module.exports = (location, file) => {
             return this._lines;
         }
     }
-    registerClass(CodeFile);
+    registerClass(CodeFile);*/
 
     class Location {
-        constructor() {
-            _.each(location(), (data, key) => {
-                this[key] = data;
-            });
+        constructor(loc = null) {
+            if (loc === null)
+                _.each(location(), (data, key) => {
+                    this[key] = data;
+                });
+            else {
+                _.each(loc, (data, key) => {
+                    this[key] = data;
+                });
+            }
         }
 
         toString() {
@@ -52,6 +58,32 @@ module.exports = (location, file) => {
         }
     }
     registerClass(Location);
+
+
+    class Trace {
+        constructor({ type, rule, location }) {
+            this.type = type.replace('rule.', '');
+            this.rule = rule;
+            this.location = new Location(location);
+        }
+    }
+    registerClass(Trace);
+
+    class SCADTracer {
+        constructor() {
+            this._trace = [];
+        }
+
+        trace(current) {
+            this._trace.push(new Trace(current));
+        }
+
+        getTrace() {
+            return this._trace;
+        }
+    }
+    registerClass(SCADTracer);
+
 
     require('./errors')(file, registerClass);
     require('./nodes')(file, registerClass);

@@ -4,15 +4,50 @@ const _ = require('lodash'),
 
 require('./ast')(() => ({}), '../../example/ex3.scad');
 
-class Trace {
-  constructor(trace) {
 
-  }
-}
-
+const tracer = new SCADTracer();
 let cache = [],
-  codeCache = [],
-  trace = [];
+  codeCache = [];
+
+const loadCode = (file, code, useCache) => {
+  try {
+    if (useCache) {
+      codeCache[file] = code;
+      cache[file] = pegParser.parse(code, {
+        tracer, file
+      });
+    }
+    else {
+      codeCache[file] = code;
+      pegParser.parse(code, {
+        tracer, file
+      });
+    }
+  } catch (error) {
+    const err = new SCADSyntaxError(tracer, error);
+    throw err;
+  }
+};
+
+const loadFile = (file, useCache) => {
+  try {
+    let code = fs.readFileSync(file, 'utf8');
+    if (useCache) {
+      codeCache[file] = code;
+      cache[file] = pegParser.parse(code, {
+        tracer, file
+      });
+    }
+    else {
+      return pegParser.parse(code, {
+        tracer, file
+      });
+    }
+  } catch (error) {
+    const err = new SCADSyntaxError(tracer, error);
+    throw err;
+  }
+};
 
 const SCADParser = module.exports = {
   getAST: (file = null, code = null, useCache = true) => {
@@ -22,39 +57,10 @@ const SCADParser = module.exports = {
     if (!_.isString(file) && !_.isString(code))
       throw new Error('You have to pass either code or file parameter!');
 
-    if (code) {
-      try {
-        if (useCache) {
-          codeCache[file] = code;
-          cache[file] = pegParser.parse(code, {
-            tracer: (trace) => trace.push(new Trace(trace)),
-            file: file
-          });
-        }
-        else {
-          codeCache[file] = code;
-          pegParser.parse(code, {
-            file: file
-          });
-        }
-      } catch (error) {
-        console.log(error.message, '\n', error.location);
-      }
-    }
-    else {
-      let code = fs.readFileSync(file, 'utf8');
-      if (useCache) {
-        codeCache[file] = code;
-        cache[file] = pegParser.parse(code, {
-          file: file
-        });
-      }
-      else {
-        return pegParser.parse(code, {
-          file: file
-        });
-      }
-    }
+    if (code)
+      loadCode(file, code, useCache);
+    else
+      loadFile(file, useCache);
 
     return cache[file];
   },
@@ -78,13 +84,9 @@ const SCADParser = module.exports = {
   }
 };
 
-
 try {
   const ast = SCADParser.getAST('../../example/ex3.scad');
   console.log(require('util').inspect(ast, true, 8, true));
 } catch (error) {
-  if (error.location)
-    console.log(`${error.message}\n${SCADParser.getCodeExcerpt('../../example/ex3.scad', error.location)}`);
-  else
-    console.log(error);
+  console.log(error.message);
 }
