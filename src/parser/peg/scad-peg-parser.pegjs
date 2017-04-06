@@ -3,29 +3,27 @@
     require('../ast')(location, options.file);
 }
 
-RootNode = whiteSpace? statements:statement* whiteSpace? { 
+RootNode = WhiteSpace? statements:StatementNode* WhiteSpace? { 
     return new RootNode(statements); 
 }
 
 // --------------------------------------------------------------------------------------------------
 // Statements
-statement "Statement"
-    = statement:comment whiteSpace? { return statement; }
-    / statement:module whiteSpace? { return statement; }
-    / statement:include whiteSpace? { return statement; }
-    / statement:function whiteSpace? { return statement; }
-    / statement:variable whiteSpace? { return statement; }  
-    / statement:action whiteSpace? { return statement; } 
+StatementNode
+    = statement:CommentNode WhiteSpace? { return statement; }
+    / statement:ModuleNode WhiteSpace? { return statement; }
+    / statement:IncludeNode WhiteSpace? { return statement; }
+    / statement:FunctionNode WhiteSpace? { return statement; }
+    / statement:VariableNode WhiteSpace? { return statement; }  
+    / statement:ActionNode WhiteSpace? { return statement; } 
 
 // --------------------------------------------------------------------------------------------------
 // Blocks
-block = blockOpen children:statement* blockClose { return new BlockNode(children); }
-blockOpen = whiteSpace? '{' whiteSpace?
-blockClose = whiteSpace? '}' whiteSpace?
+BlockNode = CurlyBraceOpen children:StatementNode* CurlyBraceClose { return new BlockNode(children); }
 
 // --------------------------------------------------------------------------------------------------
 // Comments
-comment "Comment"
+CommentNode
     = '/*' head:[^*]* '*'+ tail:([^/*] [^*]* '*'+)* '/' { 
         return new CommentNode(head.toString() + _.map(tail, (element) => {
             return element[0] + element[1].toString();
@@ -35,33 +33,30 @@ comment "Comment"
 
 // --------------------------------------------------------------------------------------------------
 // Includes
-include "Include"
-    = 'include' whiteSpace? includeOpen path:includeFile includeClose endOfStatement { return new IncludeNode(path); }
-    / 'use' whiteSpace? includeOpen path:includeFile includeClose endOfStatement { return new UseNode(path); }
+IncludeNode "Include"
+    = 'include' WhiteSpace? AngleBraceOpen path:IncludeFile AngleBraceClose EndOfStatement { return new IncludeNode(path); }
+    / 'use' WhiteSpace? AngleBraceOpen path:IncludeFile AngleBraceClose EndOfStatement { return new UseNode(path); }
 
-includeOpen = whiteSpace? '<' whiteSpace?
-includeClose = whiteSpace? '>' whiteSpace?
-
-includeFile = whiteSpace? path:[\.A-Za-z0-9\-_/]+ whiteSpace? { return path.toString(); }
+IncludeFile = WhiteSpace? path:[\.A-Za-z0-9\-_/]+ WhiteSpace? { return path.toString(); }
 
 
 // --------------------------------------------------------------------------------------------------
 // Modules
-module
-    = 'module' whiteSpace? name:name params:parameterDefinitionList block:block { return new ModuleNode(name, params, block); }
+ModuleNode
+    = 'module' WhiteSpace? name:name params:parameterDefinitionList block:BlockNode { return new ModuleNode(name, params, block); }
 
 // --------------------------------------------------------------------------------------------------
 // Functions
-function 
-    = 'function' whiteSpace? name:name params:parameterDefinitionList assign expression:expression endOfStatement { return null/*new FunctionNode('Function', {name, params, expression})*/; }
+FunctionNode 
+    = 'function' WhiteSpace? name:name params:parameterDefinitionList Assignment expression:expression EndOfStatement { return null/*new FunctionNode('Function', {name, params, expression})*/; }
 
 // --------------------------------------------------------------------------------------------------
 // Actions
-action
-    = modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* endOfStatement { 
+ActionNode
+    = modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* EndOfStatement { 
         return new ActionNode(name, params, modifier, operators);
     }
-    / modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* whiteSpace? block:block { 
+    / modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* WhiteSpace? block:BlockNode { 
         return new ActionNode(name, params, modifier, operators, block);
     }
 
@@ -74,74 +69,60 @@ actionModifiers "Modifiers"
          }
 // --------------------------------------------------------------------------------------------------
 // For loops
-forLoop
-    = 'for' whiteSpace? '(' whiteSpace? params:forLoopParameterList ')' whiteSpace? block:block endOfStatement { 
+ForLoopNode
+    = 'for' WhiteSpace? '(' WhiteSpace? params:ForLoopParameterList ')' WhiteSpace? block:BlockNode EndOfStatement { 
         return new ForLoopNode(params, modifier, operators);
     }
 
-forLoopParameterList
+ForLoopParameterList
     = [^)]+ { return new ForLoopParameterListNode([]); }
 
 // --------------------------------------------------------------------------------------------------
 // Variables
-variable "Variable definition"
-    = name:name assign value:expression  endOfStatement { 
-            return new VariableNode(name, value);
-             }
+VariableNode
+    = name:name Assignment value:expression  EndOfStatement { return new VariableNode(name, value); }
 
 
 // --------------------------------------------------------------------------------------------------
 // Types
 
 // Float
-float  "Float"
-    =  whiteSpace? neg:'-'? whiteSpace? value:[0-9\.]+ { return new NumberValue(parseFloat(value.toString(),10), neg); }
+Float
+    =  WhiteSpace? neg:'-'? WhiteSpace? value:[0-9\.]+ { return new NumberValue(parseFloat(value.toString(),10), neg); }
 
 // String
-string "String"
-    =  quotationMark value:chars* quotationMark { return new StringValue(value.toString()); }
-chars
-  = [^\0-\x1F\x22\x5C]
-quotationMark
-  = '"' whiteSpace?
+String
+    =  QuotationMark value:Characters* QuotationMark { return new StringValue(value.toString()); }
 
 // Range
-range "Range"
-    = rangeBracketOpen definition:rangeDefinition rangeBracketClose {  return new RangeValue(definition.start, definition.middle, definition.tail); }
-rangeBracketOpen
-    = '[' whiteSpace?
-rangeBracketClose
-    = ']' whiteSpace?
-rangeDefinition = comment? start:expression ':'  middle:expression tail:(':' expression)? { return { start, middle, tail: tail }; }
+Range
+    = SquareBraceOpen definition:rangeDefinition SquareBraceClose {  return new RangeValue(definition.start, definition.middle, definition.tail); }
+rangeDefinition = CommentNode? start:expression ':'  middle:expression tail:(':' expression)? { return { start, middle, tail: tail }; }
 
 // Vector
-vector "Vector"
-    =  whiteSpace? neg:'-'? whiteSpace? vectorBracketOpen values:vectorList vectorBracketClose {  return new VectorValue(values, neg); }
-vectorBracketOpen
-    = whiteSpace? '[' whiteSpace?
-vectorBracketClose
-    = whiteSpace? ']' whiteSpace?
-vectorList = comment? head:expression?  tail:(vectorListTail)* { return _.concat({value:head}, tail); }
-vectorListTail = comma comment? value:expression {return value;}
+Vector
+    =  neg:'-'? WhiteSpace? SquareBraceOpen values:vectorList SquareBraceClose {  return new VectorValue(values, neg); }
+vectorList = CommentNode? head:expression?  tail:(vectorListTail)* { return _.concat({value:head}, tail); }
+vectorListTail = Comma CommentNode? value:expression {return value;}
 
 // Reference
-reference "Reference"
-    = whiteSpace? neg:'-'? whiteSpace? ref:name {  return new ReferenceValue(ref, neg, true); }
+Reference
+    = WhiteSpace? neg:'-'? WhiteSpace? ref:name {  return new ReferenceValue(ref, neg, true); }
 
 // --------------------------------------------------------------------------------------------------
 // Values
 value 
-    = reference
-    / float
-    / string
-    / range
-    / vector
+    = Reference
+    / Float
+    / String
+    / Range
+    / Vector
 
 // --------------------------------------------------------------------------------------------------
 // Names (Varaibles, Functions, Actions, Modules)
 name "Name"
-     =  head:[A-Za-z] tail:[A-Za-z0-9_]* whiteSpace? { return head + (tail.toString() || ''); }
-     /  head:'$' tail:[A-Za-z0-9_]+ whiteSpace? { return head + (tail.toString() || ''); }
+     =  head:[A-Za-z] tail:[A-Za-z0-9_]* WhiteSpace? { return head + (tail.toString() || ''); }
+     /  head:'$' tail:[A-Za-z0-9_]+ WhiteSpace? { return head + (tail.toString() || ''); }
 
 // --------------------------------------------------------------------------------------------------
 // Terms
@@ -162,38 +143,34 @@ term "Term"
           }
 
 termOperator "Mathematical operator"
-    = op:[+\-*/%] whiteSpace? { return op[0]; }
+    = op:[+\-*/%] WhiteSpace? { return op[0]; }
 
 
 factor 
     = neg:'-'? value:value { return new FactorNode(value, neg?true:false); }
     / neg:'-'? name { return new FactorNode(name, neg?true:false); }
-    / neg:'-'? termGroupOpen value:expression termGroupClose  { return new FactorNode(value, neg?true:false); }
-termGroupOpen = '(' whiteSpace?
-termGroupClose = ')' whiteSpace?
+    / neg:'-'? RoundBraceOpen value:expression RoundBraceClose  { return new FactorNode(value, neg?true:false); }
 
 // --------------------------------------------------------------------------------------------------
 // Parameters (Actions)
 parameterList 
-    = parameterOpen head:parameterListItem?  tail:(comma parameterListItem)* parameterClose { 
+    = RoundBraceOpen head:parameterListItem?  tail:(Comma parameterListItem)* RoundBraceClose { 
         if(tail.length > 0)
             return new ParameterListNode(_.concat(head, tail));
         else
             return new ParameterListNode([head]);
     }
 parameterListItem 
-    = name:(name assign)? value:expression { 
+    = name:(name Assignment)? value:expression { 
             if(_.isArray(name))
                 return new ParameterNode(new VariableNode(name[0], value)); 
             else
                 return new ParameterNode(value);
         }
-parameterOpen = '(' whiteSpace?
-parameterClose = ')' whiteSpace?
 
 // Parameter definitions  (Functions, Modules)
 parameterDefinitionList 
-    = parameterOpen  head:parameterDefinitionListItem?  tail:(comma parameterDefinitionListItem)* parameterClose { 
+    = RoundBraceOpen  head:parameterDefinitionListItem?  tail:(Comma parameterDefinitionListItem)* RoundBraceClose { 
         if(tail.length > 0)
             return new ParameterListNode(_.concat(head, tail), true);
         else
@@ -201,7 +178,7 @@ parameterDefinitionList
     }
 
 parameterDefinitionListItem 
-    = name:(name assign)? value:expression { 
+    = name:(name Assignment)? value:expression { 
             if(_.isArray(name))
                 return new ParameterNode(new VariableNode(name[0], value)); 
             else
@@ -209,16 +186,45 @@ parameterDefinitionListItem
         }
 
 // --------------------------------------------------------------------------------------------------
-// Assignment
-assign =  '=' whiteSpace?
+// Useful stuff
+Assignment 
+    =  '=' WhiteSpace?
 
-// --------------------------------------------------------------------------------------------------
-// Macros
-whiteSpace
+WhiteSpace
     = [ \t\r\n\f]+
 
-endOfStatement
-    = whiteSpace? ';'
+EndOfStatement
+    = ';' WhiteSpace?
 
-comma
-    = ',' whiteSpace?
+RoundBraceOpen
+    = '(' WhiteSpace?
+
+RoundBraceClose 
+    = ')' WhiteSpace?
+
+CurlyBraceOpen 
+    = '{' WhiteSpace?
+
+CurlyBraceClose 
+    = '}' WhiteSpace?
+
+SquareBraceOpen
+    = '[' WhiteSpace?
+
+SquareBraceClose
+    = ']' WhiteSpace?
+
+AngleBraceOpen 
+    = WhiteSpace? '<' WhiteSpace?
+    
+AngleBraceClose 
+    = WhiteSpace? '>' WhiteSpace?
+
+Characters
+  = [^\0-\x1F\x22\x5C]
+QuotationMark
+  = '"' WhiteSpace?
+
+Comma
+    = ',' WhiteSpace?
+
