@@ -1,6 +1,11 @@
-root = whiteSpace? statements:statement* whiteSpace?  { 
+{
+    const _ = require('lodash');
+    require('../ast')(location, options.file);
+}
+
+RootNode = whiteSpace? statements:statement* whiteSpace? { 
     return new RootNode(statements); 
-     }
+}
 
 // --------------------------------------------------------------------------------------------------
 // Statements

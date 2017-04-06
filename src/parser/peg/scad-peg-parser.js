@@ -191,12 +191,12 @@ function peg$parse(input, options) {
 
   var peg$FAILED = {},
 
-      peg$startRuleFunctions = { root: peg$parseroot },
-      peg$startRuleFunction  = peg$parseroot,
+      peg$startRuleFunctions = { RootNode: peg$parseRootNode },
+      peg$startRuleFunction  = peg$parseRootNode,
 
       peg$c0 = function(statements) { 
           return new RootNode(statements); 
-           },
+      },
       peg$c1 = peg$otherExpectation("Statement"),
       peg$c2 = function(statement) { return statement; },
       peg$c3 = function(children) { return new BlockNode(children); },
@@ -498,13 +498,13 @@ function peg$parse(input, options) {
     );
   }
 
-  function peg$parseroot() {
+  function peg$parseRootNode() {
     var s0, s1, s2, s3,
         startPos = peg$currPos;
 
     peg$tracer.trace({
       type:     "rule.enter",
-      rule:     "root",
+      rule:     "RootNode",
       location: peg$computeLocation(startPos, startPos)
     });
 
@@ -545,14 +545,14 @@ function peg$parse(input, options) {
     if (s0 !== peg$FAILED) {
       peg$tracer.trace({
         type:   "rule.match",
-        rule:   "root",
+        rule:   "RootNode",
         result: s0,
         location: peg$computeLocation(startPos, peg$currPos)
       });
     } else {
       peg$tracer.trace({
         type: "rule.fail",
-        rule: "root",
+        rule: "RootNode",
         location: peg$computeLocation(startPos, startPos)
       });
     }
@@ -4347,10 +4347,10 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  const _ = require('lodash');
-  const _inspect = require('util').inspect;
-  global.inspect = (obj) => console.log(_inspect(obj, { showHidden: true, depth: null }));
-  require('../ast')(location, options.file);
+
+      const _ = require('lodash');
+      require('../ast')(location, options.file);
+
 
   peg$result = peg$startRuleFunction();
 
