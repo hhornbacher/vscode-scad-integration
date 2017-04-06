@@ -54,5 +54,5 @@ module.exports = (location, file) => {
     registerClass(Location);
 
     require('./errors')(file, registerClass);
-    require('./entities')(file, registerClass);
+    require('./nodes')(file, registerClass);
 };

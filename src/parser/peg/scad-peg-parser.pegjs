@@ -1,87 +1,87 @@
-start = ws? statements:statement* ws?  { 
-    return new RootEntity(statements); 
+root = whiteSpace? statements:statement* whiteSpace?  { 
+    return new RootNode(statements); 
      }
 
 // --------------------------------------------------------------------------------------------------
 // Statements
 statement "Statement"
-    = statement:comment ws? { return statement; }
-    / statement:module ws? { return statement; }
-    / statement:include ws? { return statement; }
-    / statement:function ws? { return statement; }
-    / statement:variable ws? { return statement; }  
-    / statement:action ws? { return statement; }
+    = statement:comment whiteSpace? { return statement; }
+    / statement:module whiteSpace? { return statement; }
+    / statement:include whiteSpace? { return statement; }
+    / statement:function whiteSpace? { return statement; }
+    / statement:variable whiteSpace? { return statement; }  
+    / statement:action whiteSpace? { return statement; } 
 
 // --------------------------------------------------------------------------------------------------
 // Blocks
-block = blockOpen children:statement* blockClose { return new BlockEntity(children); }
-blockOpen = ws? '{' ws?
-blockClose = ws? '}' ws?
+block = blockOpen children:statement* blockClose { return new BlockNode(children); }
+blockOpen = whiteSpace? '{' whiteSpace?
+blockClose = whiteSpace? '}' whiteSpace?
 
 // --------------------------------------------------------------------------------------------------
 // Comments
 comment "Comment"
     = '/*' head:[^*]* '*'+ tail:([^/*] [^*]* '*'+)* '/' { 
-        return new CommentEntity(head.toString() + _.map(tail, (element) => {
+        return new CommentNode(head.toString() + _.map(tail, (element) => {
             return element[0] + element[1].toString();
         }), true);
     }
-    / '//' ' '? text:[^\n]* '\n' { return new CommentEntity(text.toString()); }
+    / '//' ' '? text:[^\n]* '\n' { return new CommentNode(text.toString()); }
 
 // --------------------------------------------------------------------------------------------------
 // Includes
 include "Include"
-    = 'include' ws? includeOpen path:includeFile includeClose eos { return new IncludeEntity(path); }
-    / 'use' ws? includeOpen path:includeFile includeClose eos { return new UseEntity(path); }
+    = 'include' whiteSpace? includeOpen path:includeFile includeClose endOfStatement { return new IncludeNode(path); }
+    / 'use' whiteSpace? includeOpen path:includeFile includeClose endOfStatement { return new UseNode(path); }
 
-includeOpen = ws? '<' ws?
-includeClose = ws? '>' ws?
+includeOpen = whiteSpace? '<' whiteSpace?
+includeClose = whiteSpace? '>' whiteSpace?
 
-includeFile = ws? path:[\.A-Za-z0-9\-_/]+ ws? { return path.toString(); }
+includeFile = whiteSpace? path:[\.A-Za-z0-9\-_/]+ whiteSpace? { return path.toString(); }
 
 
 // --------------------------------------------------------------------------------------------------
 // Modules
 module
-    = 'module' ws? name:name params:parameterDefinitionList block:block { return new ModuleEntity(name, params, block); }
+    = 'module' whiteSpace? name:name params:parameterDefinitionList block:block { return new ModuleNode(name, params, block); }
 
 // --------------------------------------------------------------------------------------------------
 // Functions
 function 
-    = 'function' ws? name:name params:parameterDefinitionList assign expression:expression eos { return null/*new FunctionEntity('Function', {name, params, expression})*/; }
+    = 'function' whiteSpace? name:name params:parameterDefinitionList assign expression:expression endOfStatement { return null/*new FunctionNode('Function', {name, params, expression})*/; }
 
 // --------------------------------------------------------------------------------------------------
 // Actions
 action
-    = modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* eos { 
-        return new ActionEntity(name, params, modifier, operators);
+    = modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* endOfStatement { 
+        return new ActionNode(name, params, modifier, operators);
     }
-    / modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* block:block { 
-        return new ActionEntity(name, params, modifier, operators, block);
+    / modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* whiteSpace? block:block { 
+        return new ActionNode(name, params, modifier, operators, block);
     }
 
 actionOperators
-    = modifier:actionModifiers? name:name params:parameterList { return new ActionEntity(name, params, modifier); }
+    = modifier:actionModifiers? name:name params:parameterList { return new ActionNode(name, params, modifier); }
 
 actionModifiers "Modifiers"
-    = modifier:[#%!*] ws? { 
+    = modifier:[#%!*] { 
             return modifier;
          }
 // --------------------------------------------------------------------------------------------------
 // For loops
 forLoop
-    = 'for' ws? '(' ws? params:forLoopParameterList ')' ws? block:block eos { 
-        return new ForLoopEntity(params, modifier, operators);
+    = 'for' whiteSpace? '(' whiteSpace? params:forLoopParameterList ')' whiteSpace? block:block endOfStatement { 
+        return new ForLoopNode(params, modifier, operators);
     }
 
 forLoopParameterList
-    = [^)]+ { return new ForLoopParameterListEntity([]); }
+    = [^)]+ { return new ForLoopParameterListNode([]); }
 
 // --------------------------------------------------------------------------------------------------
 // Variables
 variable "Variable definition"
-    = name:name assign value:expression  eos { 
-            return new VariableEntity(name, value);
+    = name:name assign value:expression  endOfStatement { 
+            return new VariableNode(name, value);
              }
 
 
@@ -90,7 +90,7 @@ variable "Variable definition"
 
 // Float
 float  "Float"
-    =  ws? neg:'-'? ws? value:[0-9\.]+ { return new NumberValue(parseFloat(value.toString(),10), neg); }
+    =  whiteSpace? neg:'-'? whiteSpace? value:[0-9\.]+ { return new NumberValue(parseFloat(value.toString(),10), neg); }
 
 // String
 string "String"
@@ -98,30 +98,30 @@ string "String"
 chars
   = [^\0-\x1F\x22\x5C]
 quotationMark
-  = '"' ws?
+  = '"' whiteSpace?
 
 // Range
 range "Range"
     = rangeBracketOpen definition:rangeDefinition rangeBracketClose {  return new RangeValue(definition.start, definition.middle, definition.tail); }
 rangeBracketOpen
-    = '[' ws?
+    = '[' whiteSpace?
 rangeBracketClose
-    = ']' ws?
+    = ']' whiteSpace?
 rangeDefinition = comment? start:expression ':'  middle:expression tail:(':' expression)? { return { start, middle, tail: tail }; }
 
 // Vector
 vector "Vector"
-    =  ws? neg:'-'? ws? vectorBracketOpen values:vectorList vectorBracketClose {  return new VectorValue(values, neg); }
+    =  whiteSpace? neg:'-'? whiteSpace? vectorBracketOpen values:vectorList vectorBracketClose {  return new VectorValue(values, neg); }
 vectorBracketOpen
-    = ws? '[' ws?
+    = whiteSpace? '[' whiteSpace?
 vectorBracketClose
-    = ws? ']' ws?
+    = whiteSpace? ']' whiteSpace?
 vectorList = comment? head:expression?  tail:(vectorListTail)* { return _.concat({value:head}, tail); }
 vectorListTail = comma comment? value:expression {return value;}
 
 // Reference
 reference "Reference"
-    = ws? neg:'-'? ws? ref:name {  return new ReferenceValue(ref, neg, true); }
+    = whiteSpace? neg:'-'? whiteSpace? ref:name {  return new ReferenceValue(ref, neg, true); }
 
 // --------------------------------------------------------------------------------------------------
 // Values
@@ -135,85 +135,85 @@ value
 // --------------------------------------------------------------------------------------------------
 // Names (Varaibles, Functions, Actions, Modules)
 name "Name"
-     =  head:[A-Za-z] tail:[A-Za-z0-9_]* ws? { return head + (tail.toString() || ''); }
-     /  head:'$' tail:[A-Za-z0-9_]+ ws? { return head + (tail.toString() || ''); }
+     =  head:[A-Za-z] tail:[A-Za-z0-9_]* whiteSpace? { return head + (tail.toString() || ''); }
+     /  head:'$' tail:[A-Za-z0-9_]+ whiteSpace? { return head + (tail.toString() || ''); }
 
 // --------------------------------------------------------------------------------------------------
 // Terms
 expression "Expression"
     = head:term tail:(termOperator term)* { 
         if(tail.length > 0)
-            return new ExpressionEntity( _.concat([], head, tail));
+            return new ExpressionNode(_.concat([head], tail));
         else
-            return new ExpressionEntity([head]);
+            return new ExpressionNode([head]);
          }
 
 term "Term"
-    = head:factor tail:(termOperator factor )* {
+    = head:factor tail:(termOperator factor)* {
         if(tail.length > 0)
-            return new TermEntity(_.concat([], head, tail));
+            return new TermNode(_.concat([head], tail));
         else
-            return new TermEntity([head]);
+            return new TermNode([head]);
           }
 
 termOperator "Mathematical operator"
-    = op:[+\-*/%] ws? { return op[0]; }
+    = op:[+\-*/%] whiteSpace? { return op[0]; }
 
 
-termGroupOpen = ws? '(' ws?
-termGroupClose = ws? ')' ws?
 factor 
-    = neg:'-'? termGroupOpen value:expression termGroupClose  { return new FactorEntity(value, neg?true:false); }
-    / value
-    / name
+    = neg:'-'? value:value { return new FactorNode(value, neg?true:false); }
+    / neg:'-'? name { return new FactorNode(name, neg?true:false); }
+    / neg:'-'? termGroupOpen value:expression termGroupClose  { return new FactorNode(value, neg?true:false); }
+termGroupOpen = '(' whiteSpace?
+termGroupClose = ')' whiteSpace?
 
 // --------------------------------------------------------------------------------------------------
 // Parameters (Actions)
 parameterList 
-    = parameterOpen  head:parameterListItem?  tail:(comma parameterListItem)* parameterClose { 
+    = parameterOpen head:parameterListItem?  tail:(comma parameterListItem)* parameterClose { 
         if(tail.length > 0)
-            return new ParameterListEntity(_.concat(head, tail));
+            return new ParameterListNode(_.concat(head, tail));
         else
-            return new ParameterListEntity([head]);
+            return new ParameterListNode([head]);
     }
 parameterListItem 
     = name:(name assign)? value:expression { 
             if(_.isArray(name))
-                return new ParameterEntity(new VariableEntity(name[0], value)); 
+                return new ParameterNode(new VariableNode(name[0], value)); 
             else
-                return new ParameterEntity(value);
+                return new ParameterNode(value);
         }
-parameterOpen = '(' ws?
-parameterClose = ')' ws?
+parameterOpen = '(' whiteSpace?
+parameterClose = ')' whiteSpace?
 
 // Parameter definitions  (Functions, Modules)
 parameterDefinitionList 
     = parameterOpen  head:parameterDefinitionListItem?  tail:(comma parameterDefinitionListItem)* parameterClose { 
         if(tail.length > 0)
-            return new ParameterListEntity(_.concat(head, tail), true);
+            return new ParameterListNode(_.concat(head, tail), true);
         else
-            return new ParameterListEntity([head], true);
+            return new ParameterListNode([head], true);
     }
 
 parameterDefinitionListItem 
     = name:(name assign)? value:expression { 
             if(_.isArray(name))
-                return new ParameterEntity(new VariableEntity(name[0], value)); 
+                return new ParameterNode(new VariableNode(name[0], value)); 
             else
-                return new ParameterEntity(value);
+                return new ParameterNode(value);
         }
 
 // --------------------------------------------------------------------------------------------------
 // Assignment
-assign =  '=' ws?
+assign =  '=' whiteSpace?
 
 // --------------------------------------------------------------------------------------------------
 // Macros
-ws "White space"
+whiteSpace
     = [ \t\r\n\f]+
 
-eos "End of statement"
-    = ws? ';'
+endOfStatement
+    = whiteSpace? ';'
 
-comma "Comma"
-    = ws? ',' ws?
+comma
+    = ',' whiteSpace?

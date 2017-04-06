@@ -1,7 +1,7 @@
 const _ = require('lodash');
 
 function Entities(file, registerClass) {
-    class Entity {
+    class Node {
         constructor(children) {
             this._location = new Location();
 
@@ -14,8 +14,8 @@ function Entities(file, registerClass) {
             }
         }
 
-        isType(type = StatementEntity) {
-            if (!_.isFunction(type) || !type.name || !/.*Entity/.test(type.name))
+        isType(type = StatementNode) {
+            if (!_.isFunction(type) || !type.name || !/.*Node/.test(type.name))
                 throw Error('Wrong parameter type!');
             if (!this.prototype)
                 return false;
@@ -47,9 +47,9 @@ function Entities(file, registerClass) {
             return _.find(this._children, (child) => child.isType(type));
         }
     }
-    registerClass(Entity);
+    registerClass(Node);
 
-    class BlockEntity extends Entity {
+    class BlockNode extends Node {
         constructor(children) {
             super(children);
         }
@@ -58,22 +58,22 @@ function Entities(file, registerClass) {
             return !!this._root;
         }
     }
-    registerClass(BlockEntity);
+    registerClass(BlockNode);
 
-    class RootEntity extends BlockEntity {
+    class RootNode extends BlockNode {
         constructor(children) {
             super(children);
             this._root = true;
             this._file = file;
         }
     }
-    registerClass(RootEntity);
+    registerClass(RootNode);
 
-    class StatementEntity extends Entity {
+    class StatementNode extends Node {
     }
-    registerClass(StatementEntity);
+    registerClass(StatementNode);
 
-    class CommentEntity extends StatementEntity {
+    class CommentNode extends StatementNode {
         constructor(text, multiline = false) {
             super();
 
@@ -89,9 +89,9 @@ function Entities(file, registerClass) {
             return this._multiline;
         }
     }
-    registerClass(CommentEntity);
+    registerClass(CommentNode);
 
-    class VariableEntity extends Entity {
+    class VariableNode extends Node {
         constructor(name, value) {
             super();
             this._name = name;
@@ -100,51 +100,51 @@ function Entities(file, registerClass) {
             this._value = value;
         }
     }
-    registerClass(VariableEntity);
+    registerClass(VariableNode);
 
-    class IncludeEntity extends StatementEntity {
+    class IncludeNode extends StatementNode {
         constructor(file) {
             super();
             this._file = file;
         }
     }
-    registerClass(IncludeEntity);
+    registerClass(IncludeNode);
 
-    class UseEntity extends IncludeEntity {
+    class UseNode extends IncludeNode {
     }
-    registerClass(UseEntity);
+    registerClass(UseNode);
 
-    class ModuleEntity extends StatementEntity {
+    class ModuleNode extends StatementNode {
         constructor(name, params, block) {
             super();
             this._name = name;
 
-            //if (block.isType(BlockEntity)) {
+            //if (block.isType(BlockNode)) {
             this._block = block;
             //}
-            if (params.isType(ParameterListEntity)) {
+            if (params.isType(ParameterListNode)) {
                 this._params = params;
             }
         }
     }
-    registerClass(ModuleEntity);
+    registerClass(ModuleNode);
 
-    class ForLoopEntity extends StatementEntity {
+    class ForLoopNode extends StatementNode {
         constructor(params, block) {
             super();
-            
+
             if (block) {
                 this._block = block;
             }
 
-            if (params.isType(ForLoopParameterListEntity)) {
+            if (params.isType(ForLoopParameterListNode)) {
                 this._params = params;
             }
         }
     }
-    registerClass(ForLoopEntity);
+    registerClass(ForLoopNode);
 
-    class ActionEntity extends StatementEntity {
+    class ActionNode extends StatementNode {
         constructor(name, params, modifier, operators, block) {
             super();
             this._name = name;
@@ -154,9 +154,9 @@ function Entities(file, registerClass) {
                 this._block = block;
             }
 
-            if (params.isType(ParameterListEntity)) {
+            //if (params.isType(ParameterListNode)) {
                 this._params = params;
-            }
+            //}
 
             if (_.isArray(operators)) {
                 this._operators = _.map(operators.trim(), (operator) => {
@@ -168,9 +168,9 @@ function Entities(file, registerClass) {
                 this._operators = [];
         }
     }
-    registerClass(ActionEntity);
+    registerClass(ActionNode);
 
-    class ValueEntity extends StatementEntity {
+    class ValueNode extends StatementNode {
         constructor(value = null, negative = false) {
             super();
 
@@ -181,30 +181,30 @@ function Entities(file, registerClass) {
                 this._value = value;
         }
     }
-    registerClass(ValueEntity);
+    registerClass(ValueNode);
 
-    class NumberValue extends ValueEntity {
+    class NumberValue extends ValueNode {
         constructor(value, negative = false) {
             super(value, negative);
         }
     }
     registerClass(NumberValue);
 
-    class BooleanValue extends ValueEntity {
+    class BooleanValue extends ValueNode {
         constructor(value) {
             super(value);
         }
     }
     registerClass(BooleanValue);
 
-    class StringValue extends ValueEntity {
+    class StringValue extends ValueNode {
         constructor(value) {
             super(value);
         }
     }
     registerClass(StringValue);
 
-    class VectorValue extends ValueEntity {
+    class VectorValue extends ValueNode {
         constructor(value, negative = false) {
             super(value, negative);
         }
@@ -222,7 +222,7 @@ function Entities(file, registerClass) {
     }
     registerClass(RangeValue);
 
-    class ReferenceValue extends ValueEntity {
+    class ReferenceValue extends ValueNode {
         constructor(name, negative = false) {
             super(null, negative);
             this._name = name;
@@ -230,49 +230,49 @@ function Entities(file, registerClass) {
     }
     registerClass(ReferenceValue);
 
-    class ExpressionEntity extends StatementEntity {
+    class ExpressionNode extends StatementNode {
         constructor(terms) {
             super(terms);
         }
     }
-    registerClass(ExpressionEntity);
+    registerClass(ExpressionNode);
 
-    class TermEntity extends Entity {
+    class TermNode extends Node {
         constructor(factors) {
             super(factors);
         }
     }
-    registerClass(TermEntity);
+    registerClass(TermNode);
 
-    class FactorEntity extends ValueEntity {
+    class FactorNode extends ValueNode {
     }
-    registerClass(FactorEntity);
+    registerClass(FactorNode);
 
-    class ParameterListEntity extends Entity {
+    class ParameterListNode extends Node {
         constructor(parameters, standardValuesAllowed = false) {
             super();
             this._parameters = parameters;
             this._standardValuesAllowed = standardValuesAllowed;
         }
     }
-    registerClass(ParameterListEntity);
+    registerClass(ParameterListNode);
 
-    class ForLoopParameterListEntity extends Entity {
+    class ForLoopParameterListNode extends Node {
         constructor(parameters) {
             super();
             this._parameters = parameters;
         }
     }
-    registerClass(ParameterListEntity);
+    registerClass(ParameterListNode);
 
-    class ParameterEntity extends ExpressionEntity {
+    class ParameterNode extends ExpressionNode {
         constructor(value = null) {
             super();
             if (value)
                 this._value = value;
         }
     }
-    registerClass(ParameterEntity);
+    registerClass(ParameterNode);
 };
 
 module.exports = Entities;
