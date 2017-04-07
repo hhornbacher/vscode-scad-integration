@@ -2,7 +2,7 @@ const _ = require('lodash'),
   fs = require('fs'),
   pegParser = require('./peg/scad-peg-parser');
 
-require('./ast')(() => ({}), '../../example/ex3.scad');
+require('./ast')(() => ({}), '../../example/ex4.scad', '');
 
 
 const tracer = new SCADTracer();
@@ -24,8 +24,9 @@ const loadCode = (file, code, useCache) => {
       });
     }
   } catch (error) {
-    const err = new SCADSyntaxError(tracer, error);
-    throw err;
+    if (error.name === 'SyntaxError')
+      error = new SCADSyntaxError(file, tracer, error);
+    throw error;
   }
 };
 
@@ -44,8 +45,9 @@ const loadFile = (file, useCache) => {
       });
     }
   } catch (error) {
-    const err = new SCADSyntaxError(tracer, error);
-    throw err;
+    if (error.name === 'SyntaxError')
+      error = new SCADSyntaxError(file, tracer, error);
+    throw error;
   }
 };
 
@@ -63,30 +65,17 @@ const SCADParser = module.exports = {
       loadFile(file, useCache);
 
     return cache[file];
-  },
-  getCodeExcerpt: (file, location, offset = 6) => {
-    let lines = codeCache[file].split('\n');
-    let output = `Code excerpt: ${file}\n[...]\n`;
-    let start = location.start.line - (1 + offset);
-    let end = location.end.line + offset - 1;
-    for (let i = start; i < end; i++) {
-      if (i !== (location.start.line - 1))
-        output += `${_.padStart((i + 1), 4, '0')}: ${lines[i]}\n`;
-      else {
-        output += `${_.padStart((i + 1), 4, '0')}: ${lines[i]}\n#`;
-        _.times(location.start.column - 1 + 6, () => { output += ' ' });
-        output += '^';
-        _.times((location.end.column - location.start.column) - 1, () => { output += '~' });
-        output += '\n';
-      }
-    }
-    return output + '[...]';
   }
 };
 
 try {
-  const ast = SCADParser.getAST('../../example/ex3.scad');
-  console.log(require('util').inspect(ast, true, 8, true));
+  const ast = SCADParser.getAST('../../example/ex4.scad');
+  console.log(inspectObject(ast, false));
+  console.log(inspectObject(ast.location, false));
+  console.log(inspectObject(ast.parent, false));
+  console.log(inspectObject(ast.root, false));
+  console.log(inspectObject(ast.file, false));
+  console.log(inspectObject(ast.children, false));
 } catch (error) {
-  console.log(error.message);
+  console.log(error.toString());
 }

@@ -1,20 +1,29 @@
 const _ = require('lodash');
 
 function Entities(file, registerClass) {
-    class Node {
-        constructor(children) {
-            this._location = new Location();
+
+    class Node extends ASTBaseClass {
+        constructor(children, privateProps = {}) {
+            privateProps = _.merge({
+                _location: new Location(),
+                parent: null
+            }, privateProps);
 
             if (_.isArray(children)) {
                 children = children.trim();
-                this._children = _.map(children, (child) => {
-                    child._parent = this;
-                    return child;
+                privateProps._children = children;
+            }
+
+            super(privateProps);
+
+            if (_.isArray(children)) {
+                _.each(children, (child) => {
+                    child.parent = this;
                 });
             }
         }
 
-        isType(type = StatementNode) {
+        isType(type = Node) {
             if (!_.isFunction(type) || !type.name || !/.*Node/.test(type.name))
                 throw Error('Wrong parameter type!');
             if (!this.prototype)
@@ -22,90 +31,60 @@ function Entities(file, registerClass) {
             return this.prototype.isPrototypeOf(type) || false;
         }
 
-        get parent() {
-            return this._parent;
-        }
-
-        set parent(parent = null) {
-            this._parent = parent;
-        }
-
-        get type() {
-            return this._type;
-        }
-
-        get children() {
-            return this._children || null;
-        }
-
         getChildrenOfType(type) {
-            if (!this._children)
+            if (!this.children)
                 return null;
             if (!type)
-                return this._children;
+                return this.children;
 
-            return _.find(this._children, (child) => child.isType(type));
+            return _.find(this.children, (child) => child.isType(type));
         }
     }
     registerClass(Node);
 
     class BlockNode extends Node {
-        constructor(children) {
-            super(children);
-        }
-
-        isRoot() {
-            return !!this._root;
+        constructor(children, privateProps) {
+            super(children, privateProps);
         }
     }
     registerClass(BlockNode);
 
     class RootNode extends BlockNode {
         constructor(children) {
-            super(children);
-            this._root = true;
-            this._file = file;
+            super(children, {
+                _root: true,
+                _file: file
+            });
         }
     }
     registerClass(RootNode);
 
-    class StatementNode extends Node {
-    }
-    registerClass(StatementNode);
-
-    class CommentNode extends StatementNode {
+    class CommentNode extends Node {
         constructor(text, multiline = false) {
-            super();
-
-            this._text = text;
-            this._multiline = multiline;
-        }
-
-        get text() {
-            return this._text;
-        }
-
-        get multiline() {
-            return this._multiline;
+            super(null, {
+                _text: text,
+                _multiline: multiline
+            });
         }
     }
     registerClass(CommentNode);
 
     class VariableNode extends Node {
         constructor(name, value) {
-            super();
-            this._name = name;
-
+            super(null, {
+                _name: name,
+                _value: value
+            });
             value._parent = this;
-            this._value = value;
         }
     }
     registerClass(VariableNode);
 
-    class IncludeNode extends StatementNode {
+    class IncludeNode extends Node {
         constructor(file) {
-            super();
-            this._file = file;
+            super(null, {
+                _file: file
+            });
         }
     }
     registerClass(IncludeNode);
@@ -114,71 +93,62 @@ function Entities(file, registerClass) {
     }
     registerClass(UseNode);
 
-    class ModuleNode extends StatementNode {
+    class ModuleNode extends Node {
         constructor(name, params, block) {
-            super();
-            this._name = name;
-
-            //if (block.isType(BlockNode)) {
-            this._block = block;
-            //}
-            if (params.isType(ParameterListNode)) {
-                this._params = params;
-            }
+            let privateProps = {
+                _name: name,
+                _block: block,
+                _params: params
+            };
+            super(null, privateProps);
         }
     }
     registerClass(ModuleNode);
 
-    class ForLoopNode extends StatementNode {
+    class ForLoopNode extends Node {
         constructor(params, block) {
-            super();
-
-            if (block) {
-                this._block = block;
-            }
-
-            if (params.isType(ForLoopParameterListNode)) {
-                this._params = params;
-            }
+            let privateProps = {
+                _block: block,
+                _params: params
+            };
+            super(null, privateProps);
         }
     }
     registerClass(ForLoopNode);
 
-    class ActionNode extends StatementNode {
+    class ActionNode extends Node {
         constructor(name, params, modifier, operators, block) {
-            super();
-            this._name = name;
-            this._modifier = modifier;
-
+            let privateProps = {
+                _name: name,
+                _modifier: modifier,
+                _params: params
+            };
             if (block) {
-                this._block = block;
+                privateProps._block = block;
             }
-
-            //if (params.isType(ParameterListNode)) {
-                this._params = params;
-            //}
 
             if (_.isArray(operators)) {
-                this._operators = _.map(operators.trim(), (operator) => {
-                    operator._parent = this;
-                    return operator;
+                operators = operators.trim();
+                privateProps._operators = operators;
+            }
+
+            super(null, privateProps);
+
+            if (_.isArray(operators)) {
+                _.each(operators, (operator) => {
+                    operator.parent = this;
                 });
             }
-            else
-                this._operators = [];
         }
     }
     registerClass(ActionNode);
 
-    class ValueNode extends StatementNode {
-        constructor(value = null, negative = false) {
-            super();
-
-            if (negative)
-                this._negative = true;
-
-            if (value)
-                this._value = value;
+    class ValueNode extends Node {
+        constructor(value = null, negative = false, privateProps = {}) {
+            super(null, _.merge({
+                _value: value,
+                _negative: negative
+            }, privateProps));
         }
     }
     registerClass(ValueNode);
@@ -224,13 +194,14 @@ function Entities(file, registerClass) {
 
     class ReferenceValue extends ValueNode {
         constructor(name, negative = false) {
-            super(null, negative);
-            this._name = name;
+            super(null, negative, {
+                _name: name
+            });
         }
     }
     registerClass(ReferenceValue);
 
-    class ExpressionNode extends StatementNode {
+    class ExpressionNode extends Node {
         constructor(terms) {
             super(terms);
         }
@@ -250,26 +221,26 @@ function Entities(file, registerClass) {
 
     class ParameterListNode extends Node {
         constructor(parameters, standardValuesAllowed = false) {
-            super();
-            this._parameters = parameters;
-            this._standardValuesAllowed = standardValuesAllowed;
+            super(null, {
+                _parameters: parameters,
+                _standardValuesAllowed: standardValuesAllowed
+            });
         }
     }
     registerClass(ParameterListNode);
 
     class ForLoopParameterListNode extends Node {
         constructor(parameters) {
-            super();
-            this._parameters = parameters;
+            super(null, {
+                _parameters: parameters
+            });
         }
     }
-    registerClass(ParameterListNode);
+    registerClass(ForLoopParameterListNode);
 
     class ParameterNode extends ExpressionNode {
-        constructor(value = null) {
-            super();
-            if (value)
-                this._value = value;
+        constructor(value) {
+            super([value]);
         }
     }
     registerClass(ParameterNode);

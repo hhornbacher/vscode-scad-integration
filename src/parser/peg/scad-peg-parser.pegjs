@@ -1,16 +1,16 @@
 {
-    const _ = require('lodash');
-    require('../ast')(location, options.file);
+    require('../ast')(location, options.file, options.code);
 }
 
-RootNode = WhiteSpace? statements:StatementNode* WhiteSpace? { 
+RootNode "RootNode" 
+    = WhiteSpace? statements:StatementNode* WhiteSpace? { 
     return new RootNode(statements); 
 }
 
 // --------------------------------------------------------------------------------------------------
 // Statements
-StatementNode
-    = statement:CommentNode WhiteSpace? { return statement; }
+StatementNode "StatementNode"
+    = statement:CommentNode WhiteSpace? { return statement; } 
     / statement:ModuleNode WhiteSpace? { return statement; }
     / statement:IncludeNode WhiteSpace? { return statement; }
     / statement:FunctionNode WhiteSpace? { return statement; }
@@ -19,11 +19,12 @@ StatementNode
 
 // --------------------------------------------------------------------------------------------------
 // Blocks
-BlockNode = CurlyBraceOpen children:StatementNode* CurlyBraceClose { return new BlockNode(children); }
+BlockNode "BlockNode" 
+    = CurlyBraceOpen children:StatementNode* CurlyBraceClose { return new BlockNode(children); }
 
 // --------------------------------------------------------------------------------------------------
 // Comments
-CommentNode
+CommentNode "CommentNode"
     = '/*' head:[^*]* '*'+ tail:([^/*] [^*]* '*'+)* '/' { 
         return new CommentNode(head.toString() + _.map(tail, (element) => {
             return element[0] + element[1].toString();
@@ -37,81 +38,83 @@ IncludeNode "Include"
     = 'include' WhiteSpace? AngleBraceOpen path:IncludeFile AngleBraceClose EndOfStatement { return new IncludeNode(path); }
     / 'use' WhiteSpace? AngleBraceOpen path:IncludeFile AngleBraceClose EndOfStatement { return new UseNode(path); }
 
-IncludeFile = WhiteSpace? path:[\.A-Za-z0-9\-_/]+ WhiteSpace? { return path.toString(); }
+IncludeFile "IncludeFile" 
+    = WhiteSpace? path:[\.A-Za-z0-9\-_/]+ WhiteSpace? { return path.toString(); }
 
 
 // --------------------------------------------------------------------------------------------------
 // Modules
-ModuleNode
-    = 'module' WhiteSpace? name:name params:parameterDefinitionList block:BlockNode { return new ModuleNode(name, params, block); }
+ModuleNode "ModuleNode"
+    = 'module' WhiteSpace? name:Name params:ParameterDefinitionList block:BlockNode { return new ModuleNode(name, params, block); }
 
 // --------------------------------------------------------------------------------------------------
 // Functions
-FunctionNode 
-    = 'function' WhiteSpace? name:name params:parameterDefinitionList Assignment expression:expression EndOfStatement { return null/*new FunctionNode('Function', {name, params, expression})*/; }
+FunctionNode "FunctionNode" 
+    = 'function' WhiteSpace? name:Name params:ParameterDefinitionList Assignment expression:ExpressionNode EndOfStatement { return null/*new FunctionNode('Function', {name, params, expression})*/; }
 
 // --------------------------------------------------------------------------------------------------
 // Actions
-ActionNode
-    = modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* EndOfStatement { 
+ActionNode "ActionNode"
+    = modifier:ActionModifiers? name:Name params:ParameterList operators:(ActionOperators)* EndOfStatement { 
         return new ActionNode(name, params, modifier, operators);
     }
-    / modifier:actionModifiers? name:name params:parameterList operators:(actionOperators)* WhiteSpace? block:BlockNode { 
+    / modifier:ActionModifiers? name:Name params:ParameterList operators:(ActionOperators)* WhiteSpace? block:BlockNode { 
         return new ActionNode(name, params, modifier, operators, block);
     }
 
-actionOperators
-    = modifier:actionModifiers? name:name params:parameterList { return new ActionNode(name, params, modifier); }
+ActionOperators "ActionOperators"
+    = modifier:ActionModifiers? name:Name params:ParameterList { return new ActionNode(name, params, modifier); }
 
-actionModifiers "Modifiers"
+ActionModifiers "ActionModifiers"
     = modifier:[#%!*] { 
             return modifier;
          }
+
 // --------------------------------------------------------------------------------------------------
 // For loops
-ForLoopNode
+ForLoopNode "ForLoopNode"
     = 'for' WhiteSpace? '(' WhiteSpace? params:ForLoopParameterList ')' WhiteSpace? block:BlockNode EndOfStatement { 
         return new ForLoopNode(params, modifier, operators);
     }
 
-ForLoopParameterList
+ForLoopParameterList "ForLoopParameterList"
     = [^)]+ { return new ForLoopParameterListNode([]); }
 
 // --------------------------------------------------------------------------------------------------
 // Variables
-VariableNode
-    = name:name Assignment value:expression  EndOfStatement { return new VariableNode(name, value); }
+VariableNode "VariableNode"
+    = name:Name Assignment value:ExpressionNode  EndOfStatement { return new VariableNode(name, value); }
 
 
 // --------------------------------------------------------------------------------------------------
 // Types
 
 // Float
-Float
+Float "Float"
     =  WhiteSpace? neg:'-'? WhiteSpace? value:[0-9\.]+ { return new NumberValue(parseFloat(value.toString(),10), neg); }
 
 // String
-String
+String "String"
     =  QuotationMark value:Characters* QuotationMark { return new StringValue(value.toString()); }
 
 // Range
-Range
-    = SquareBraceOpen definition:rangeDefinition SquareBraceClose {  return new RangeValue(definition.start, definition.middle, definition.tail); }
-rangeDefinition = CommentNode? start:expression ':'  middle:expression tail:(':' expression)? { return { start, middle, tail: tail }; }
+Range "Range"
+    = SquareBraceOpen definition:RangeDefinition SquareBraceClose {  return new RangeValue(definition.start, definition.middle, definition.tail); }
+RangeDefinition = start:ExpressionNode ':'  middle:ExpressionNode tail:(':' ExpressionNode)? { return { start, middle, tail: tail }; }
 
 // Vector
-Vector
-    =  neg:'-'? WhiteSpace? SquareBraceOpen values:vectorList SquareBraceClose {  return new VectorValue(values, neg); }
-vectorList = CommentNode? head:expression?  tail:(vectorListTail)* { return _.concat({value:head}, tail); }
-vectorListTail = Comma CommentNode? value:expression {return value;}
+Vector "Vector"
+    =  neg:'-'? WhiteSpace? SquareBraceOpen values:VectorList SquareBraceClose {  return new VectorValue(values, neg); }
+VectorList = head:ExpressionNode?  tail:(VectorListTail)* { return _.concat({value:head}, tail); }
+VectorListTail = Comma value:ExpressionNode {return value;}
 
 // Reference
-Reference
-    = WhiteSpace? neg:'-'? WhiteSpace? ref:name {  return new ReferenceValue(ref, neg, true); }
+Reference "Reference"
+    = WhiteSpace? neg:'-'? WhiteSpace? ref:Name {  return new ReferenceValue(ref, neg, true); }
 
 // --------------------------------------------------------------------------------------------------
 // Values
-value 
+Value "Value" 
     = Reference
     / Float
     / String
@@ -120,48 +123,48 @@ value
 
 // --------------------------------------------------------------------------------------------------
 // Names (Varaibles, Functions, Actions, Modules)
-name "Name"
+Name "Name"
      =  head:[A-Za-z] tail:[A-Za-z0-9_]* WhiteSpace? { return head + (tail.toString() || ''); }
      /  head:'$' tail:[A-Za-z0-9_]+ WhiteSpace? { return head + (tail.toString() || ''); }
 
 // --------------------------------------------------------------------------------------------------
 // Terms
-expression "Expression"
-    = head:term tail:(termOperator term)* { 
+ExpressionNode "ExpressionNode"
+    = head:TermNode tail:(TermOperator TermNode)* { 
         if(tail.length > 0)
             return new ExpressionNode(_.concat([head], tail));
         else
             return new ExpressionNode([head]);
          }
 
-term "Term"
-    = head:factor tail:(termOperator factor)* {
+TermNode "TermNode"
+    = head:FactorNode tail:(TermOperator FactorNode)* {
         if(tail.length > 0)
             return new TermNode(_.concat([head], tail));
         else
             return new TermNode([head]);
           }
 
-termOperator "Mathematical operator"
+TermOperator "TermOperator"
     = op:[+\-*/%] WhiteSpace? { return op[0]; }
 
 
-factor 
-    = neg:'-'? value:value { return new FactorNode(value, neg?true:false); }
-    / neg:'-'? name { return new FactorNode(name, neg?true:false); }
-    / neg:'-'? RoundBraceOpen value:expression RoundBraceClose  { return new FactorNode(value, neg?true:false); }
+FactorNode "FactorNode" 
+    = neg:'-'? value:Value { return new FactorNode(value, neg?true:false); }
+    / neg:'-'? name:Name { return new FactorNode(name, neg?true:false, {_name:name}); }
+    / neg:'-'? RoundBraceOpen value:ExpressionNode RoundBraceClose  { return new FactorNode(value, neg?true:false); }
 
 // --------------------------------------------------------------------------------------------------
 // Parameters (Actions)
-parameterList 
-    = RoundBraceOpen head:parameterListItem?  tail:(Comma parameterListItem)* RoundBraceClose { 
+ParameterList "ParameterList" 
+    = RoundBraceOpen head:ParameterListItem?  tail:(Comma ParameterListItem)* RoundBraceClose { 
         if(tail.length > 0)
             return new ParameterListNode(_.concat(head, tail));
         else
             return new ParameterListNode([head]);
     }
-parameterListItem 
-    = name:(name Assignment)? value:expression { 
+ParameterListItem "ParameterListItem" 
+    = name:(Name Assignment)? value:ExpressionNode { 
             if(_.isArray(name))
                 return new ParameterNode(new VariableNode(name[0], value)); 
             else
@@ -169,16 +172,16 @@ parameterListItem
         }
 
 // Parameter definitions  (Functions, Modules)
-parameterDefinitionList 
-    = RoundBraceOpen  head:parameterDefinitionListItem?  tail:(Comma parameterDefinitionListItem)* RoundBraceClose { 
+ParameterDefinitionList "ParameterDefinitionList" 
+    = RoundBraceOpen  head:ParameterDefinitionListItem?  tail:(Comma ParameterDefinitionListItem)* RoundBraceClose { 
         if(tail.length > 0)
             return new ParameterListNode(_.concat(head, tail), true);
         else
             return new ParameterListNode([head], true);
     }
 
-parameterDefinitionListItem 
-    = name:(name Assignment)? value:expression { 
+ParameterDefinitionListItem "ParameterDefinitionListItem" 
+    = name:(Name Assignment)? value:ExpressionNode { 
             if(_.isArray(name))
                 return new ParameterNode(new VariableNode(name[0], value)); 
             else
@@ -187,44 +190,45 @@ parameterDefinitionListItem
 
 // --------------------------------------------------------------------------------------------------
 // Useful stuff
-Assignment 
+Assignment "Assignment" 
     =  '=' WhiteSpace?
 
-WhiteSpace
+WhiteSpace "WhiteSpace"
     = [ \t\r\n\f]+
 
-EndOfStatement
+EndOfStatement "EndOfStatement"
     = ';' WhiteSpace?
 
-RoundBraceOpen
+RoundBraceOpen "RoundBraceOpen"
     = '(' WhiteSpace?
 
-RoundBraceClose 
+RoundBraceClose "RoundBraceClose" 
     = ')' WhiteSpace?
 
-CurlyBraceOpen 
+CurlyBraceOpen "CurlyBraceOpen" 
     = '{' WhiteSpace?
 
-CurlyBraceClose 
+CurlyBraceClose "CurlyBraceClose" 
     = '}' WhiteSpace?
 
-SquareBraceOpen
+SquareBraceOpen "SquareBraceOpen"
     = '[' WhiteSpace?
 
-SquareBraceClose
+SquareBraceClose "SquareBraceClose"
     = ']' WhiteSpace?
 
-AngleBraceOpen 
+AngleBraceOpen "AngleBraceOpen" 
     = WhiteSpace? '<' WhiteSpace?
     
-AngleBraceClose 
+AngleBraceClose "AngleBraceClose" 
     = WhiteSpace? '>' WhiteSpace?
 
-Characters
+Characters "Characters"
   = [^\0-\x1F\x22\x5C]
-QuotationMark
+
+QuotationMark "QuotationMark"
   = '"' WhiteSpace?
 
-Comma
+Comma "Comma"
     = ',' WhiteSpace?
 

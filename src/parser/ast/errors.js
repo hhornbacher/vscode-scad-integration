@@ -1,17 +1,23 @@
 const _ = require('lodash');
 
-module.exports = function Errors(file, registerClass) {
+module.exports = function Errors(registerClass) {
 
-    class SCADSyntaxError extends SyntaxError {
-        constructor(tracer, {message, expected, found, location}) {
+    class SCADSyntaxError extends Error {
+        constructor(file, tracer, {message, expected, found, location}) {
             super(message);
 
-            this._expected = expected;
-            this._found = found;
-            this._location = new Location(location);
-            this._trace = tracer.getTrace();
+            _.extend(this, new ASTBaseClass({
+                expected,
+                found,
+                location: new Location(location),
+                trace: _.slice(tracer.stackTrace, tracer.stackTrace.length-10),
+                file
+            }));
+        }
 
-            console.log(this);
+        toString() {
+            console.log(_.findLastIndex({type}));
+            return `SCAD syntax error: ${this.message} [${this.file}@${this.location.start.line}:${this.location.start.column}]\n${this.trace}`;
         }
     }
     registerClass(SCADSyntaxError);
