@@ -1,13 +1,14 @@
-const { window, commands, languages } = require('vscode'),
+const { languages } = require('vscode'),
     _ = require('lodash'),
+    SCADProcessor = require('./scad-processor'),
     scadDefinitionProvider = require('./scad-definition-provider');
+
+const scadProcessor = new SCADProcessor();
 
 // Activate extension features
 function activate(context) {
-    console.log('Extension "openscad-integration" is now activated!');
-
     let featureDisposables = [
-        languages.registerDefinitionProvider('scad', new scadDefinitionProvider())
+        languages.registerDefinitionProvider('scad', new scadDefinitionProvider(scadProcessor))
     ];
 
     _.each(featureDisposables, disposable => context.subscriptions.push(disposable));

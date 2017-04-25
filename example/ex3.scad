@@ -56,7 +56,7 @@ module drawDisplayModule() {
         #cube(size=[pinHeaderHeight, pinHeaderWidh, pinHeaderTopDepth]);
     }
 }
-
+       /*
 module topFrame(shrink=4, size=2, depth=4, t=tollerance) {
     // Frame top
     color("black") {
@@ -69,8 +69,7 @@ module topFrame(shrink=4, size=2, depth=4, t=tollerance) {
         [ vfdWidth+(shrink*3)+(size/2),  shrink-(size/2),  topFrameDepth ],  //5
         [ vfdWidth+(shrink*3)+(size/2),  vfdHeight+(shrink*3)+(size/2),  topFrameDepth ],  //6
         [  shrink-(size/2),  vfdHeight+(shrink*3)+(size/2),  topFrameDepth ]]; //7
-        
-        CubeFaces = [
+         CubeFaces = [
         [0,1,2,3],  // bottom
         [4,5,1,0],  // front
         [7,6,5,4],  // top
@@ -93,13 +92,26 @@ module topFrame(shrink=4, size=2, depth=4, t=tollerance) {
         snapperNoseDepth=4;
         snapperBridgeDepth=1;
         snappeWidth=snapperNoseDepth+snapperBridgeDepth; 
+
         #snapper(
+             position=[vfdWidth+(size*2)+5,((vfdHeight+(size*2))/2)+(snapperWidth*2),-snapperHeight],
+             rotation=[0 ,0 ,180],
+             dimension=[snapperWidth,snapperHeight,snapperBridgeDepth], 
+             noseDepth=(snapperNoseDepth), 
+             noseHeight=(6)
+        )
+        {
+            x=5;
+        }
+        
+        #snapper()
              position=[vfdWidth+(size*2)+5,((vfdHeight+(size*2))/2)+(snapperWidth*2),-snapperHeight],
              rotation=[0, 0, 180],
              dimension=[snapperWidth,snapperHeight,snapperBridgeDepth], 
              noseDepth=snapperNoseDepth, 
              noseHeight=6
              ) {
+        
                 // Frame bottom
                 difference() {
                     translate([(shrink*2)-size, (shrink*2)-size, -depth]) {
@@ -139,4 +151,4 @@ snapperHole(position=[0,25,0],dimension=[4,12,1], noseDepth=4, noseHeight=6) {
 }
 display();
 
-
+*/

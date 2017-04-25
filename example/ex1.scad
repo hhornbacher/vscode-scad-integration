@@ -15,7 +15,7 @@ module test(d=3) {
 }
 
 fz=[1,2,3];
-fz=1+(2*4);
+fz=1+2*4;
 fz=[7,8+9,10];
 fz=[(4-(pinHeaderHeight/2)),((pcbHeight/2)-(pinHeaderWidh/2)),-pinHeaderBottomDepth];
 
