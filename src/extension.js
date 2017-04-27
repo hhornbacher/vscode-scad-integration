@@ -1,14 +1,16 @@
-const { languages } = require('vscode'),
+const { workspace, languages } = require('vscode'),
     _ = require('lodash'),
-    SCADProcessor = require('./scad-processor'),
-    scadDefinitionProvider = require('./scad-definition-provider');
+    SCADProcessor = require('./scad-processor');
 
-const scadProcessor = new SCADProcessor();
 
 // Activate extension features
 function activate(context) {
+    const scadProcessor = new SCADProcessor();
     let featureDisposables = [
-        languages.registerDefinitionProvider('scad', new scadDefinitionProvider(scadProcessor))
+        languages.registerDefinitionProvider('scad', scadProcessor),
+        languages.registerReferenceProvider('scad', scadProcessor),
+        languages.registerRenameProvider('scad', scadProcessor),
+        //workspace.registerTextDocumentContentProvider()
     ];
 
     _.each(featureDisposables, disposable => context.subscriptions.push(disposable));

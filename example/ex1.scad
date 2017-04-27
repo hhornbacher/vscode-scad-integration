@@ -23,9 +23,10 @@ color("red");
 
 color("black") translate() {
     XXX=10;
-    cube([1,2.3,0],"c",d=3);
+    test([1,2.3,0],"c",d=3);
 }
 
+size=5;
 
 
 CubePoints = [
