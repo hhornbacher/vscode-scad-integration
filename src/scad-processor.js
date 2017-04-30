@@ -1,6 +1,6 @@
 const _ = require('lodash'),
     SCADParser = require('scad-parser'),
-    { window, Location, Position, Range } = require('vscode');
+    { Location, Position, Range, WorkspaceEdit } = require('vscode');
 
 class SCADProcessor {
     constructor() {
@@ -19,19 +19,41 @@ class SCADProcessor {
         return this.cache[document.fileName];
     }
 
+    tokenToRange(token) {
+        return new Range(
+            new Position(token.line - 1, token.col - 1),
+            new Position(token.line - 1, token.col - 1 + token.size)
+        );
+    }
+
     getNode(document, position) {
         const token = this.parser.getToken(position.character, position.line + 1, document.fileName);
         return this.cache[document.fileName].ast.findByToken(token);
     }
 
-    renameIdentifier(document, position, newName) {
-
+    renameIdentifier(document, position, newText) {
+        const token = this.parser.getToken(position.character, position.line + 1, document.fileName);
+        const we = new WorkspaceEdit();
+        if (token.type === 'identifier')
+            _.each(this.parser.findTokens(token.value, null, document.fileName), token => {
+                we.replace(document.uri, this.tokenToRange(token), newText);
+            });
+        if (token.type === 'actionCall' || token.type === 'moduleDefinition') {
+            _.each(this.parser.findTokens(token.value, 'actionCall', document.fileName), token => {
+                we.replace(document.uri, this.tokenToRange(token), newText + '(');
+            });
+            _.each(this.parser.findTokens(token.value, 'moduleDefinition', document.fileName), token => {
+                we.replace(document.uri, this.tokenToRange(token), 'module ' + newText + '(');
+            });
+        }
+        return we;
     }
 
     findReferences(document, position) {
         const token = this.parser.getToken(position.character, position.line + 1, document.fileName);
-        if (_.includes(['identifier', 'actionCall', 'functionDefinition', 'moduleDefinition'], token.type))
-            console.log('References:', this.cache[document.fileName].ast.findByName(token.value));
+        if (_.includes(['identifier', 'actionCall', 'functionDefinition', 'moduleDefinition'], token.type)) {
+            return _.map(this.parser.findTokens(token.value, null, document.fileName), token => new Location(document.uri, this.tokenToRange(token)));
+        }
     }
 
     findDefinition(document, position) {
@@ -42,8 +64,8 @@ class SCADProcessor {
                 node => node.className === 'VariableNode'
             )[0];
             const range = new Range(
-                new Position(v.tokens[0].line-1, v.tokens[0].col-1),
-                new Position(v.tokens[2].line-1, v.tokens[2].col-1)
+                new Position(v.tokens[0].line - 1, v.tokens[0].col - 1),
+                new Position(v.tokens[2].line - 1, v.tokens[2].col - 1)
             );
             return new Location(document.uri, range);
         }
@@ -53,8 +75,8 @@ class SCADProcessor {
                 node => node.className === 'ModuleNode'
             )[0];
             const range = new Range(
-                new Position(m.tokens[0].line-1, m.tokens[0].col-1),
-                new Position(m.tokens[3].line-1, m.tokens[3].col-1)
+                new Position(m.tokens[0].line - 1, m.tokens[0].col - 1),
+                new Position(m.tokens[3].line - 1, m.tokens[3].col - 1)
             );
             return new Location(document.uri, range);
         }
@@ -73,35 +95,28 @@ class SCADProcessor {
         return location;
     }
 
-    provideReferences(document, position, options) {
-        let nodes = null;
+    provideReferences(document, position) {
+        let locations = null;
         try {
             this.parse(document);
-            nodes = this.findReferences(document, position);
+            locations = this.findReferences(document, position);
         } catch (error) {
             console.log(error);
         }
-
-        if (nodes)
-            window.showInformationMessage(nodes.toString());
-
-        return null;
+        console.log(locations);
+        return locations;
     }
 
-    provideRenameEdits(
-        document, position,
-        newName) {
-        console.log(document, position, newName);
-
+    provideRenameEdits(document, position, newName) {
+        let edit = null;
         try {
             this.parse(document);
-            this.renameIdentifier(document, position, newName);
-            window.showInformationMessage('Done');
+            edit = this.renameIdentifier(document, position, newName);
         } catch (error) {
             console.log(error);
         }
 
-        return null;
+        return edit;
     }
 }
 
