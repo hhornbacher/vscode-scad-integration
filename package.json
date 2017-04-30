@@ -2,7 +2,7 @@
   "name": "openscad-integration",
   "displayName": "OpenSCAD Integration",
   "description": "",
-  "version": "0.0.1",
+  "version": "0.0.1-alpha",
   "icon": "images/logo.png",
   "publisher": "hhornbacher",
   "engines": {
