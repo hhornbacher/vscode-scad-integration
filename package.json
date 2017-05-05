@@ -12,44 +12,21 @@
     "Languages",
     "Snippets",
     "Formatters",
-    "Other"
+    "Extension Packs"
   ],
   "activationEvents": [
     "onLanguage:scad"
   ],
   "main": "./src/extension",
   "contributes": {
-    "languages": [
-      {
-        "id": "scad",
-        "aliases": [
-          "OpenSCAD",
-          "scad"
-        ],
-        "extensions": [
-          ".scad"
-        ],
-        "configuration": "./scad.configuration.json"
-      }
-    ],
-    "snippets": [
-      {
-        "language": "scad",
-        "path": "./snippets/scad.json"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "scad",
-        "scopeName": "source.scad",
-        "path": "./syntaxes/scad.tmLanguage"
-      }
-    ]
   },
   "scripts": {
     "postinstall": "node ./node_modules/vscode/bin/install",
     "test": "node ./node_modules/vscode/bin/test"
   },
+  "extensionDependencies": [
+    "efbenson.scad"
+  ],
   "devDependencies": {
     "mocha": "^3.3.0",
     "vscode": "^1.0.0"

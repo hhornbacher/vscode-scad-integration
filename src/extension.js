@@ -1,4 +1,4 @@
-const { workspace, languages } = require('vscode'),
+const { languages } = require('vscode'),
     _ = require('lodash'),
     SCADProcessor = require('./scad-processor');
 

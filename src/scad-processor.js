@@ -59,6 +59,8 @@ class SCADProcessor {
     findDefinition(document, position) {
         const token = this.parser.getToken(position.character, position.line + 1, document.fileName);
         if (token.type === 'identifier') {
+            console.log(token);
+            console.log(this.cache[document.fileName].ast.findByToken(token));
             let v = _.filter(
                 this.cache[document.fileName].ast.findByName(token.value),
                 node => node.className === 'VariableNode'
