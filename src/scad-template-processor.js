@@ -36,7 +36,7 @@ class SCADTemplateProcessor {
         editor.selections = [new Selection(cursorMark, cursorMark)];
     }
 
-    createFile(template, parameters, path = null) {
+    createFile(template, parameters, file = null) {
         const content = Mustache.render(template, parameters);
         const { cleanContent, cursorMark } = this.extractCursorMark(content);
 
@@ -44,16 +44,40 @@ class SCADTemplateProcessor {
             content: cleanContent,
             language: 'scad'
         };
-        if (path)
-            return fs.existsAsync(path)
-                .then(exists => {
-                    if (!exists)
-                        return fs.writeFileAsync(path, cleanContent, 'utf8');
-                })
-                .then(() => workspace.openTextDocument(path)
-                    .then(doc => window.showTextDocument(doc))
-                    .then(editor => this.setCursorPosition(editor, cursorMark)));
+        if (file) {
+            const filePath = path.dirname(file);
 
+            return fs.openAsync(file, 'wx')
+                .then(handle => {
+                    return fs.writeAsync(handle, cleanContent, 'utf8')
+                        .then(() => file)
+                        .then((file) => workspace.openTextDocument(file))
+                        .then(doc => window.showTextDocument(doc))
+                        .then(editor => this.setCursorPosition(editor, cursorMark));
+                })
+                .catch(() => {
+                    return window.showWarningMessage('File exists! Do you want to overwrite it?', 'Yes', 'Change name')
+                        .then(result => {
+                            if (result === 'Yes') {
+                                return fs.writeFileAsync(file, cleanContent, 'utf8')
+                                    .then(() => file);
+                            }
+                            else if (result === 'Change name') {
+                                return window.showInputBox({
+                                    prompt: 'Please enter a new name:',
+                                    value: path.basename(file.replace('.scad', '_.scad'))
+                                })
+                                    .then(file => {
+                                        fs.writeFileAsync(filePath + '/' + file, cleanContent, 'utf8');
+                                        return filePath + '/' + file;
+                                    });
+                            }
+                        })
+                        .then((file) => workspace.openTextDocument(file))
+                        .then(doc => window.showTextDocument(doc))
+                        .then(editor => this.setCursorPosition(editor, cursorMark));
+                });
+        }
         else
             return workspace.openTextDocument(uri)
                 .then(doc => window.showTextDocument(doc))
@@ -71,7 +95,7 @@ class SCADTemplateProcessor {
         })
             .then(params => {
                 self.createFile(this.templates.main, {
-                    params: _.map(params.split(','), param => param.trim()).join(',\n')
+                    params: _.map(params.split(','), param => param.trim()).join(',\n    ')
                 }, path || null)
             })
 
@@ -94,7 +118,7 @@ class SCADTemplateProcessor {
             path += '/' + inflection.transform(component, ['underscore', 'dasherize']);
             self.createFile(this.templates.main, {
                 component: inflection.classify(component),
-                params: _.map(params.split(','), param => param.trim()).join(', ')
+                params: _.map(params.split(','), param => param.trim()).join(',\n    ')
             }, path || null);
         });
 
