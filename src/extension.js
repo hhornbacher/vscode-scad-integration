@@ -1,19 +1,27 @@
-const { languages } = require('vscode'),
-    _ = require('lodash'),
-    SCADProcessor = require('./scad-processor');
-
+const { languages, commands, Disposable } = require('vscode'),
+    SCADProcessor = require('./scad-processor'),
+    SCADTemplateProcessor = require('./scad-template-processor');
 
 // Activate extension features
 function activate(context) {
     const scadProcessor = new SCADProcessor();
-    let featureDisposables = [
+    const templateProcessor = new SCADTemplateProcessor();
+
+    const providerRegistrations = Disposable.from(
         languages.registerDefinitionProvider('scad', scadProcessor),
         languages.registerReferenceProvider('scad', scadProcessor),
-        languages.registerRenameProvider('scad', scadProcessor),
-        //workspace.registerTextDocumentContentProvider()
-    ];
+        languages.registerRenameProvider('scad', scadProcessor)
+    );
 
-    _.each(featureDisposables, disposable => context.subscriptions.push(disposable));
+    const commandsRegistrations = Disposable.from(
+        commands.registerCommand('scad.createMainFile', templateProcessor.cmdCreateMainFile, templateProcessor),
+        commands.registerCommand('scad.createComponentFile', templateProcessor.cmdCreateComponentFile, templateProcessor)
+    );
+
+    context.subscriptions.push(
+        commandsRegistrations,
+        providerRegistrations
+    );
 }
 
 // Cleanup when getting deactivated

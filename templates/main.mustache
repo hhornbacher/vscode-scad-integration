@@ -1,0 +1,14 @@
+/**
+ * Main file, assembles everything together
+ * @component Main
+ */
+
+// Set time variable to 0 or use cli parameter
+time=0;
+$t=time;
+
+module Main(
+    {{ &params }}
+) {
+    %CUR%
+}

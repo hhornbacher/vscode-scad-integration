@@ -15,10 +15,36 @@
     "Extension Packs"
   ],
   "activationEvents": [
-    "onLanguage:scad"
+    "onLanguage:scad",
+    "onCommand:scad.createMainFile",
+    "onCommand:scad.createComponentFile"
   ],
   "main": "./src/extension",
   "contributes": {
+    "commands": [
+      {
+        "command": "scad.createMainFile",
+        "title": "OpenSCAD: Create a new main file"
+      },
+      {
+        "command": "scad.createComponentFile",
+        "title": "OpenSCAD: Create a new component file"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "when": "explorerResourceIsFolder",
+          "command": "scad.createMainFile",
+          "group": "scad"
+        },
+        {
+          "when": "explorerResourceIsFolder",
+          "command": "scad.createComponentFile",
+          "group": "scad"
+        }
+      ]
+    }
   },
   "scripts": {
     "postinstall": "node ./node_modules/vscode/bin/install",
@@ -32,7 +58,10 @@
     "vscode": "^1.0.0"
   },
   "dependencies": {
+    "bluebird": "^3.5.0",
+    "inflection": "^1.12.0",
     "lodash": "^4.17.4",
+    "mustache": "^2.3.0",
     "scad-parser": "^1.0.7"
   }
 }
