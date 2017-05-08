@@ -1,4 +1,6 @@
-const _ = require('lodash'),
+const Promise = require('bluebird'),
+    _ = require('lodash'),
+    tmp = Promise.promisifyAll(require('tmp')),
     SCADParser = require('scad-parser'),
     { Location, Position, Range, WorkspaceEdit } = require('vscode');
 
@@ -9,6 +11,16 @@ class SCADProcessor {
     }
 
     /* Internal */
+    render(file) {
+        return tmp.fileAsync({ postfix: '.png' })
+            .then((tmpFile) => {
+                this.parser.render(null, file, {
+                    outputFile: tmpFile,
+                    colorScheme: 'Starnight'
+                });
+                return tmpFile;
+            });
+    }
 
     parse(document) {
         this.cache[document.fileName] = {

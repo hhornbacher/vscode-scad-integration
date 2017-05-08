@@ -5,7 +5,7 @@ const { languages, commands, Disposable } = require('vscode'),
 // Activate extension features
 function activate(context) {
     const scadProcessor = new SCADProcessor();
-    const templateProcessor = new SCADTemplateProcessor();
+    const templateProcessor = new SCADTemplateProcessor(scadProcessor);
 
     const providerRegistrations = Disposable.from(
         languages.registerDefinitionProvider('scad', scadProcessor),
@@ -15,7 +15,8 @@ function activate(context) {
 
     const commandsRegistrations = Disposable.from(
         commands.registerCommand('scad.createMainFile', templateProcessor.cmdCreateMainFile, templateProcessor),
-        commands.registerCommand('scad.createComponentFile', templateProcessor.cmdCreateComponentFile, templateProcessor)
+        commands.registerCommand('scad.createComponentFile', templateProcessor.cmdCreateComponentFile, templateProcessor),
+        commands.registerCommand('scad.renderPreview', templateProcessor.cmdRenderPreview, templateProcessor)
     );
 
     context.subscriptions.push(

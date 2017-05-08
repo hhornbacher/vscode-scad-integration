@@ -1,17 +1,25 @@
-const _ = require('lodash'),
+const Promise = require('bluebird'),
+    _ = require('lodash'),
+    tmp = Promise.promisifyAll(require('tmp')),
     path = require('path'),
-    Promise = require('bluebird'),
     inflection = require('inflection'),
     fs = Promise.promisifyAll(require('fs')),
     Mustache = require('mustache'),
-    { workspace, window, Position, Selection } = require('vscode');
+    { workspace, window, commands, Position, Selection, Uri } = require('vscode');
 
 class SCADTemplateProcessor {
-    constructor() {
+    constructor(scadProcessor) {
         this.templates = {
-            main: fs.readFileSync(path.resolve(__dirname, '../templates/main.mustache'), 'utf8'),
-            component: fs.readFileSync(path.resolve(__dirname, '../templates/component.mustache'), 'utf8')
+            files: {
+                main: fs.readFileSync(path.resolve(__dirname, '../templates/files/main.mustache'), 'utf8'),
+                component: fs.readFileSync(path.resolve(__dirname, '../templates/files/component.mustache'), 'utf8')
+            },
+            views: {
+                filePreview: fs.readFileSync(path.resolve(__dirname, '../templates/views/preview.mustache'), 'utf8')
+            }
         };
+        this.scadProcessor = scadProcessor;
+
     }
 
     extractCursorMark(content) {
@@ -84,10 +92,38 @@ class SCADTemplateProcessor {
                 .then(editor => this.setCursorPosition(editor, cursorMark));
     }
 
-    cmdCreateMainFile(path) {
+    cmdRenderPreview(uri) {
+        let filePath = uri.fsPath;
+        this.scadProcessor.render(filePath)
+            .then(previewImage =>
+                Promise.props(
+                    {
+                        content: Mustache.render(this.templates.views.filePreview, {
+                            previewImage: previewImage
+                        }),
+                        tmpFile: tmp.fileAsync({ postfix: '.html' })
+                            .then((tmpFile) => fs.writeFileAsync(tmpFile)
+                                .then(() => tmpFile)
+                            )
+                    }
+                )
+                    .then(({ content, tmpFile }) =>
+                        fs.writeFileAsync(tmpFile, content, 'utf8')
+                            .then(() => tmpFile)
+                    )
+            )
+            .then(tmpFile => commands.executeCommand('vscode.previewHtml', Uri.parse('file://'+tmpFile)))
+        /*.then(content => tmp.fileAsync({ postfix: '.html' })
+            .then((tmpFile) => fs.writeFileAsync(tmpFile)
+                .then(() => tmpFile)
+            ));*/
+        return true;
+    }
+
+    cmdCreateMainFile(uri) {
         const self = this;
-        if (path && path.scheme === 'file')
-            path = path.fsPath + '/main.scad';
+        if (uri && uri.scheme === 'file')
+            uri = uri.fsPath + '/main.scad';
 
 
         window.showInputBox({
@@ -96,16 +132,16 @@ class SCADTemplateProcessor {
             .then(params => {
                 self.createFile(this.templates.main, {
                     params: _.map(params.split(','), param => param.trim()).join(',\n    ')
-                }, path || null)
+                }, uri || null)
             })
 
         return true;
     }
 
-    cmdCreateComponentFile(path) {
+    cmdCreateComponentFile(uri) {
         const self = this;
-        if (path && path.scheme === 'file')
-            path = path.fsPath + '/main.scad';
+        if (uri && uri.scheme === 'file')
+            uri = uri.fsPath + '/main.scad';
 
         Promise.join([
             window.showInputBox({
@@ -115,11 +151,11 @@ class SCADTemplateProcessor {
                 prompt: 'Paramters for component'
             })
         ], (component, params) => {
-            path += '/' + inflection.transform(component, ['underscore', 'dasherize']);
+            uri += '/' + inflection.transform(component, ['underscore', 'dasherize']);
             self.createFile(this.templates.main, {
                 component: inflection.classify(component),
                 params: _.map(params.split(','), param => param.trim()).join(',\n    ')
-            }, path || null);
+            }, uri || null);
         });
 
         return true;

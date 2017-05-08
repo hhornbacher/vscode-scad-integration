@@ -29,6 +29,10 @@
       {
         "command": "scad.createComponentFile",
         "title": "OpenSCAD: Create a new component file"
+      },
+      {
+        "command": "scad.renderPreview",
+        "title": "OpenSCAD: Render a preview of this file"
       }
     ],
     "menus": {
@@ -41,6 +45,13 @@
         {
           "when": "explorerResourceIsFolder",
           "command": "scad.createComponentFile",
+          "group": "scad"
+        }
+      ],
+      "editor/context": [
+        {
+          "when": "editorLangId == scad",
+          "command": "scad.renderPreview",
           "group": "scad"
         }
       ]
@@ -62,6 +73,7 @@
     "inflection": "^1.12.0",
     "lodash": "^4.17.4",
     "mustache": "^2.3.0",
-    "scad-parser": "^1.0.7"
+    "scad-parser": "^1.0.11",
+    "tmp": "0.0.31"
   }
 }
