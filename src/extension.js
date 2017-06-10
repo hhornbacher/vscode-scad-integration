@@ -10,7 +10,8 @@ function activate(context) {
     const providerRegistrations = Disposable.from(
         languages.registerDefinitionProvider('scad', scadProcessor),
         languages.registerReferenceProvider('scad', scadProcessor),
-        languages.registerRenameProvider('scad', scadProcessor)
+        languages.registerRenameProvider('scad', scadProcessor),
+        languages.registerDocumentFormattingEditProvider('scad', scadProcessor)
     );
 
     const commandsRegistrations = Disposable.from(

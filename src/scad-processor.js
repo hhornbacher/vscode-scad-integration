@@ -1,8 +1,8 @@
 const Promise = require('bluebird'),
     _ = require('lodash'),
     tmp = Promise.promisifyAll(require('tmp')),
-    SCADParser = require('scad-parser'),
-    { Location, Position, Range, WorkspaceEdit } = require('vscode');
+    SCADParser = require('scad-parser').default,
+    { Location, Position, Range, WorkspaceEdit, TextEdit } = require('vscode');
 
 class SCADProcessor {
     constructor() {
@@ -131,6 +131,19 @@ class SCADProcessor {
         }
 
         return edit;
+    }
+
+    formatDocument(document) {
+        let format = null;
+        try {
+            const ast = this.parse(document);
+            // format = new TextEdit(document)
+            // format = 
+        } catch (error) {
+            console.log(error);
+        }
+
+        return format;
     }
 }
 
