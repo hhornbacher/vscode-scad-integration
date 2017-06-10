@@ -1,12 +1,11 @@
-import * as _ from 'lodash';
-import * as _fs from 'fs';
-import * as path from 'path';
-import inflection from 'inflection';
-import Mustache from 'mustache';
 import { workspace, window, commands, Range, WorkspaceEdit, Location, Position, Selection, Uri } from 'vscode';
+import * as _ from 'lodash';
+import * as path from 'path';
+import * as inflection from 'inflection';
+import * as Mustache from 'mustache';
 import SCADParser from 'scad-parser';
 import { Token } from 'scad-parser/lib/nearley/tokens';
-import tmpFile from './tmp';
+import {tmpFile} from './utils';
 
 type ChachedFile = {
     lastParsed: Date,

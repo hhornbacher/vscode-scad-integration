@@ -1,31 +1,33 @@
-import * as _ from 'lodash';
-import fs from 'fs-then-native';
-import * as _fs from 'fs';
-import * as path from 'path';
-import inflection from 'inflection';
-import Mustache from 'mustache';
 import { workspace, window, commands, Position, Selection, Uri } from 'vscode';
+import * as _ from 'lodash';
+import * as path from 'path';
+import * as inflection from 'inflection';
+import * as Mustache from 'mustache';
 import SCADProcessor from './scad-processor';
-import tmpFile from './tmp';
+import {tmpFile, readFile, writeFile, write, open} from './utils';
 
-
-type TemplateEntry = { [key: string]: string };
+type TemplateMap = { [key: string]: { [key: string]: string } };
 
 class SCADTemplateProcessor {
-    private templates: {
-        [key: string]: TemplateEntry
-    };
+    private templates: TemplateMap | null;
     private scadProcessor: SCADProcessor;
+
     constructor(scadProcessor: SCADProcessor) {
-        this.templates = {
-            files: {
-                main: _fs.readFileSync(path.resolve(__dirname, '../templates/files/main.mustache'), 'utf8'),
-                component: _fs.readFileSync(path.resolve(__dirname, '../templates/files/component.mustache'), 'utf8')
-            },
-            views: {
-                filePreview: _fs.readFileSync(path.resolve(__dirname, '../templates/views/preview.mustache'), 'utf8')
-            }
-        };
+        this.templates = null;
+        Promise.all([
+            readFile(path.resolve(__dirname, '../templates/files/main.mustache'), 'utf8'),
+            readFile(path.resolve(__dirname, '../templates/files/component.mustache'), 'utf8'),
+            readFile(path.resolve(__dirname, '../templates/views/preview.mustache'), 'utf8')
+        ])
+            .then(([main, component, filePreview]) => {
+                this.templates = {
+                    files: { main, component },
+                    views: { filePreview }
+                };
+            })
+            .catch(err => {
+                console.log(err);
+            });
         this.scadProcessor = scadProcessor;
 
     }
@@ -53,6 +55,9 @@ class SCADTemplateProcessor {
     }
 
     createFile(template, parameters, file = null) {
+        if (!this.templates)
+            return null;
+
         const content = Mustache.render(template, parameters);
         const { cleanContent, cursorMark } = this.extractCursorMark(content);
 
@@ -63,9 +68,9 @@ class SCADTemplateProcessor {
         if (file) {
             const filePath = path.dirname(file);
 
-            return fs.open(file, 'wx')
+            return open(file, 'wx')
                 .then(handle => {
-                    return fs.write(handle, cleanContent, 'utf8')
+                    return write(handle, cleanContent, 'utf8')
                         .then(() => file)
                         .then((file) => workspace.openTextDocument(file))
                         .then(doc => window.showTextDocument(doc))
@@ -75,7 +80,7 @@ class SCADTemplateProcessor {
                     return window.showWarningMessage('File exists! Do you want to overwrite it?', 'Yes', 'Change name')
                         .then(result => {
                             if (result === 'Yes') {
-                                return fs.writeFile(file, cleanContent, 'utf8')
+                                return writeFile(file, cleanContent, 'utf8')
                                     .then(() => file);
                             }
                             else if (result === 'Change name') {
@@ -84,7 +89,7 @@ class SCADTemplateProcessor {
                                     value: path.basename(file.replace('.scad', '_.scad'))
                                 })
                                     .then(file => {
-                                        fs.writeFile(filePath + '/' + file, cleanContent, 'utf8');
+                                        writeFile(filePath + '/' + file, cleanContent, 'utf8');
                                         return filePath + '/' + file;
                                     });
                             }
@@ -101,30 +106,24 @@ class SCADTemplateProcessor {
     }
 
     cmdRenderPreview(uri) {
-/*        let filePath = uri.fsPath;
+        let filePath = uri.fsPath;
         this.scadProcessor.render(filePath)
             .then(previewImage =>
-                Promise.props(
-                    {
-                        content: Mustache.render(this.templates.views.filePreview, {
-                            previewImage: previewImage
-                        }),
-                        tmpFile: tmp.fileAsync({ postfix: '.html' })
-                            .then((tmpFile) => fs.writeFile(tmpFile)
-                                .then(() => tmpFile)
-                            )
-                    }
-                )
-                    .then(({ content, tmpFile }) =>
-                        fs.writeFile(tmpFile, content, 'utf8')
+                Promise.all([
+                    Mustache.render(this.templates.views.filePreview, {
+                        previewImage: previewImage
+                    }),
+                    tmpFile({ postfix: '.html' })
+                        .then((tmpFile) => writeFile(tmpFile)
+                            .then(() => tmpFile)
+                        )
+                ])
+                    .then(([content, tmpFile]) =>
+                        writeFile(tmpFile, content, 'utf8')
                             .then(() => tmpFile)
                     )
             )
-            .then(tmpFile => commands.executeCommand('vscode.previewHtml', Uri.parse('file://' + tmpFile)))*/
-        /*.then(content => tmp.fileAsync({ postfix: '.html' })
-            .then((tmpFile) => fs.writeFile(tmpFile)
-                .then(() => tmpFile)
-            ));*/
+            .then(tmpFile => commands.executeCommand('vscode.previewHtml', Uri.parse('file://' + tmpFile)));
         return true;
     }
 
@@ -151,20 +150,20 @@ class SCADTemplateProcessor {
         if (uri && uri.scheme === 'file')
             uri = uri.fsPath + '/main.scad';
 
-/*        Promise.join([
+        Promise.all([
             window.showInputBox({
                 prompt: 'Name of your new component'
             }),
             window.showInputBox({
                 prompt: 'Paramters for component'
             })
-        ], (component, params) => {
+        ]).then(([component, params]) => {
             uri += '/' + inflection.transform(component, ['underscore', 'dasherize']);
             self.createFile(this.templates.main, {
                 component: inflection.classify(component),
                 params: _.map(params.split(','), param => param.trim()).join(',\n    ')
             }, uri || null);
-        });*/
+        });
 
         return true;
     }
