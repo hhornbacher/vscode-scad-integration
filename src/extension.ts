@@ -1,11 +1,14 @@
-const { languages, commands, Disposable } = require('vscode'),
-    SCADProcessor = require('./scad-processor'),
-    SCADTemplateProcessor = require('./scad-template-processor');
+'use strict';
 
-// Activate extension features
-function activate(context) {
+import { languages, commands, Disposable, ExtensionContext } from 'vscode';
+import SCADProcessor from './scad-processor';
+import SCADTemplateProcessor from './scad-template-processor';
+
+
+export function activate(context: ExtensionContext) {
     const scadProcessor = new SCADProcessor();
     const templateProcessor = new SCADTemplateProcessor(scadProcessor);
+    console.log('XXX');
 
     const providerRegistrations = Disposable.from(
         languages.registerDefinitionProvider('scad', scadProcessor),
@@ -26,8 +29,6 @@ function activate(context) {
     );
 }
 
-// Cleanup when getting deactivated
-function deactivate() {
-}
 
-module.exports = { activate, deactivate };
+export function deactivate() {
+}

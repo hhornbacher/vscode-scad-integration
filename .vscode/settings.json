@@ -1,16 +1,9 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-    "git.confirmSync": false,
-    "java.errors.incompleteClasspath.severity": "ignore",
-    "window.zoomLevel": 0,
-    "workbench.colorTheme": "Default Light+",
-    "emeraldwalk.runonsave": {
-        "autoClearConsole": true,
-        "commands": [
-            {
-                "match": "\\.pegjs$",
-                "cmd": "pegjs --trace ${file}"
-            }
-        ]
+    "files.exclude": {
+        "out": false // set this to true to hide the "out" folder with the compiled JS files
+    },
+    "search.exclude": {
+        "out": true // set this to false to include "out" folder in search results
     }
 }

@@ -1,10 +1,22 @@
-const Promise = require('bluebird'),
-    _ = require('lodash'),
-    tmp = Promise.promisifyAll(require('tmp')),
-    SCADParser = require('scad-parser').default,
-    { Location, Position, Range, WorkspaceEdit, TextEdit } = require('vscode');
+import * as _ from 'lodash';
+import * as _fs from 'fs';
+import * as path from 'path';
+import inflection from 'inflection';
+import Mustache from 'mustache';
+import { workspace, window, commands, Range, WorkspaceEdit, Location, Position, Selection, Uri } from 'vscode';
+import SCADParser from 'scad-parser';
+import { Token } from 'scad-parser/lib/nearley/tokens';
+import tmpFile from './tmp';
+
+type ChachedFile = {
+    lastParsed: Date,
+    ast: any
+}
 
 class SCADProcessor {
+    private parser: SCADParser;
+    private cache: { [key: string]: ChachedFile };
+
     constructor() {
         this.parser = new SCADParser();
         this.cache = {};
@@ -12,7 +24,7 @@ class SCADProcessor {
 
     /* Internal */
     render(file) {
-        return tmp.fileAsync({ postfix: '.png' })
+        return tmpFile({ postfix: '.png' })
             .then((tmpFile) => {
                 this.parser.render(null, file, {
                     outputFile: tmpFile,
@@ -133,7 +145,7 @@ class SCADProcessor {
         return edit;
     }
 
-    formatDocument(document) {
+    provideDocumentFormattingEdits(document) {
         let format = null;
         try {
             const ast = this.parse(document);
@@ -147,4 +159,4 @@ class SCADProcessor {
     }
 }
 
-module.exports = SCADProcessor;
+export default SCADProcessor;

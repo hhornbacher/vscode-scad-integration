@@ -1,79 +1,86 @@
 {
-  "name": "openscad-integration",
-  "displayName": "OpenSCAD Integration",
-  "description": "",
-  "version": "0.0.1-alpha",
-  "icon": "images/logo.png",
-  "publisher": "hhornbacher",
-  "engines": {
-    "vscode": "^1.10.0"
-  },
-  "categories": [
-    "Languages",
-    "Snippets",
-    "Formatters",
-    "Extension Packs"
-  ],
-  "activationEvents": [
-    "onLanguage:scad",
-    "onCommand:scad.createMainFile",
-    "onCommand:scad.createComponentFile"
-  ],
-  "main": "./src/extension",
-  "contributes": {
-    "commands": [
-      {
-        "command": "scad.createMainFile",
-        "title": "OpenSCAD: Create a new main file"
-      },
-      {
-        "command": "scad.createComponentFile",
-        "title": "OpenSCAD: Create a new component file"
-      },
-      {
-        "command": "scad.renderPreview",
-        "title": "OpenSCAD: Render a preview of this file"
-      }
+    "name": "vscode-scad-integration",
+    "displayName": "OpenSCAD Integration",
+    "description": "",
+    "version": "0.0.1",
+    "icon": "images/logo.png",
+    "publisher": "hhornbacher",
+    "engines": {
+        "vscode": "^1.11.0"
+    },
+    "categories": [
+        "Languages",
+        "Snippets",
+        "Formatters",
+        "Extension Packs"
     ],
-    "menus": {
-      "explorer/context": [
-        {
-          "when": "explorerResourceIsFolder",
-          "command": "scad.createMainFile",
-          "group": "scad"
-        },
-        {
-          "when": "explorerResourceIsFolder",
-          "command": "scad.createComponentFile",
-          "group": "scad"
+    "activationEvents": [
+        "onLanguage:scad",
+        "onCommand:scad.createMainFile",
+        "onCommand:scad.createComponentFile"
+    ],
+    "main": "./out/src/extension",
+    "contributes": {
+        "commands": [
+            {
+                "command": "scad.createMainFile",
+                "title": "OpenSCAD: Create a new main file"
+            },
+            {
+                "command": "scad.createComponentFile",
+                "title": "OpenSCAD: Create a new component file"
+            },
+            {
+                "command": "scad.renderPreview",
+                "title": "OpenSCAD: Render a preview of this file"
+            }
+        ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "when": "explorerResourceIsFolder",
+                    "command": "scad.createMainFile",
+                    "group": "scad"
+                },
+                {
+                    "when": "explorerResourceIsFolder",
+                    "command": "scad.createComponentFile",
+                    "group": "scad"
+                }
+            ],
+            "editor/context": [
+                {
+                    "when": "editorLangId == scad",
+                    "command": "scad.renderPreview",
+                    "group": "scad"
+                }
+            ]
         }
-      ],
-      "editor/context": [
-        {
-          "when": "editorLangId == scad",
-          "command": "scad.renderPreview",
-          "group": "scad"
-        }
-      ]
+    },
+    "scripts": {
+        "vscode:prepublish": "tsc -p ./ ; cp -R ./templates ./out",
+        "compile": "tsc -watch -p ./ ; cp -R ./templates ./out",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "node ./node_modules/vscode/bin/test"
+    },
+    "extensionDependencies": [
+        "efbenson.scad"
+    ],
+    "devDependencies": {
+        "@types/bluebird": "^3.5.5",
+        "@types/mocha": "^2.2.32",
+        "@types/node": "^6.0.78",
+        "mocha": "^2.3.3",
+        "typescript": "^2.3.4",
+        "vscode": "^1.0.0"
+    },
+    "dependencies": {
+        "bluebird": "^3.5.0",
+        "fs-then-native": "^2.0.0",
+        "inflection": "^1.12.0",
+        "lodash": "^4.17.4",
+        "mustache": "^2.3.0",
+        "scad-parser": "^1.0.14",
+        "tmp": "0.0.31"
     }
-  },
-  "scripts": {
-    "postinstall": "node ./node_modules/vscode/bin/install",
-    "test": "node ./node_modules/vscode/bin/test"
-  },
-  "extensionDependencies": [
-    "efbenson.scad"
-  ],
-  "devDependencies": {
-    "mocha": "^3.4.2",
-    "vscode": "^1.0.0"
-  },
-  "dependencies": {
-    "bluebird": "^3.5.0",
-    "inflection": "^1.12.0",
-    "lodash": "^4.17.4",
-    "mustache": "^2.3.0",
-    "scad-parser": "^1.0.14",
-    "tmp": "0.0.31"
-  }
 }
