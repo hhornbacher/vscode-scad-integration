@@ -8,7 +8,6 @@ import SCADTemplateProcessor from './scad-template-processor';
 export function activate(context: ExtensionContext) {
     const scadProcessor = new SCADProcessor();
     const templateProcessor = new SCADTemplateProcessor(scadProcessor);
-    console.log('XXX');
 
     const providerRegistrations = Disposable.from(
         languages.registerDefinitionProvider('scad', scadProcessor),
